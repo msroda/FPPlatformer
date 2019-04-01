@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Characters/CharacterHealthComponent.h"
+#include "Weapons/BaseGun.h"
 #include "MyCharacter.generated.h"
 
 UENUM()
@@ -34,17 +36,8 @@ protected:
 	/** Secondary gun action */
 	void OnAltFire();
 
-	/** Start parkour input */
-	void ParkourStart();
-
-	/** Stop parkour input */
-	void ParkourEnd();
-
 	/** Resets HMD orientation and position in VR. */
 	void OnResetVR();
-
-	/** Handles jumping and parkour */
-	void CustomJump();
 
 	/** Handles moving forward/backward */
 	void MoveForward(float Val);
@@ -132,15 +125,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
 		float WallJumpForce = 500.0f;
 
-	/** Gun class */
-	UPROPERTY(EditDefaultsOnly, Category = Projectile)
-		TSubclassOf<class AActor> GunClass;
+	/** Guns to spawn */
+	UPROPERTY(EditDefaultsOnly, Category = Guns)
+		TArray<TSubclassOf<ABaseGun>> GunsClasses;
 
 	/** Called every frame */
 	virtual void Tick(float DeltaTime) override;
 
 	/** Handles jumping */
 	virtual void Jump() override;
+
+	/** Handles releasing of jump button */
+	virtual void StopJumping() override;
 
 	/** Handles landing */
 	virtual void Landed(const FHitResult & Hit) override;
@@ -156,7 +152,7 @@ private:
 	bool IsCloseToWall;
 
 	/** If player holds parkour key down */
-	bool ParkourKeyDown;
+	bool JumpKeyDown;
 
 	/** Can player start wallrunning during current jump */
 	bool CanWallRun;
@@ -173,6 +169,20 @@ private:
 	/** Search for walls  */
 	EWallNeighborhood CheckForWallsNearby(FVector &wallNormal);
 
+	/** Get currently equipped gun ID */
+	int CurrentGunID = 0;
+	
+	/** Get currently equipped gun object*/
+	ABaseGun* GetCurrentGun();
+
 	/** Performed when player stops wallrunning*/
 	void StopWallrun();
+
+	/** Health Component*/
+	UCharacterHealthComponent* CharacterHealth;
+
+	/** Spawned guns */
+	TArray<ABaseGun*> Guns;
+
+	ABaseGun* tempGun;
 };

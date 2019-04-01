@@ -38,6 +38,21 @@ AMyCharacter::AMyCharacter()
 void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	TArray<AActor*> tempArray;
+	GetAllChildActors(tempArray, false);
+
+	tempGun = dynamic_cast<ABaseGun*>(tempArray[0]);
+	
+	/*for (auto GunClass : GunsClasses)
+	{
+		ABaseGun* spawned;
+		FActorSpawnParameters params;
+		spawned = GetWorld()->SpawnActorAbsolute(GunClass, GetActorLocation() + gunffset, params);
+		spawned->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
+		spawned->SetOwner(this);
+		Guns.Add(spawned);
+	}*/
 }
 
 // Called every frame
@@ -47,13 +62,8 @@ void AMyCharacter::Tick(float DeltaTime)
 
 	if (IsWallRunning)
 	{
-		//check if player wants to stop wallrunning
-		if (!ParkourKeyDown)
-		{
-			StopWallrun();
-		}
 		//check if the wallrunning needs to be stopped by the gravity
-		else if ((WallNeighborhood == WN_Front && GetVelocity().Z < MinVerticalZSpeed) || (WallNeighborhood == WN_Side && GetVelocity().Z < MinHorizontalZSpeed))
+		if ((WallNeighborhood == WN_Front && GetVelocity().Z < MinVerticalZSpeed) || (WallNeighborhood == WN_Side && GetVelocity().Z < MinHorizontalZSpeed))
 		{
 			StopWallrun();
 		}
@@ -100,7 +110,7 @@ void AMyCharacter::Tick(float DeltaTime)
 		WallNeighborhood = CheckForWallsNearby(AttachedWallNormal);
 
 		//if player wants to wallrun and there's a wall nearby, that is vertical
-		if (ParkourKeyDown && CanWallRun && WallNeighborhood != WN_None && AttachedWallNormal.Z >= -0.05f && AttachedWallNormal.Z < 0.15f)
+		if (JumpKeyDown && CanWallRun && WallNeighborhood != WN_None && AttachedWallNormal.Z >= -0.05f && AttachedWallNormal.Z < 0.15f)
 		{
 			CanWallRun = false;			
 			IsWallRunning = true;
@@ -130,9 +140,6 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	PlayerInputComponent->BindAction("Parkour", IE_Pressed, this, &AMyCharacter::ParkourStart);
-	PlayerInputComponent->BindAction("Parkour", IE_Released, this, &AMyCharacter::ParkourEnd);
-
 // Bind fire event
 PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyCharacter::OnFire);
 
@@ -155,55 +162,33 @@ PlayerInputComponent->BindAxis("LookUpRate", this, &AMyCharacter::LookUpAtRate);
 
 void AMyCharacter::OnFire()
 {
-	// try and fire a projectile
-	if (GunClass)
+	FHitResult outHit;
+	bool isHit = false;
+
+	FVector startLocation = FirstPersonCameraComponent->GetComponentLocation();
+
+	FCollisionQueryParams collisionParams;
+
+	// front
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + FirstPersonCameraComponent->GetForwardVector() * 200, ECC_Visibility, collisionParams);
+
+	if (isHit)
 	{
-		/*UWorld* const World = GetWorld();
-		if (World != NULL)
-		{
-			if (bUsingMotionControllers)
-			{
-				const FRotator SpawnRotation = VR_MuzzleLocation->GetComponentRotation();
-				const FVector SpawnLocation = VR_MuzzleLocation->GetComponentLocation();
-				World->SpawnActor<APlatformer3DProjectile>(ProjectileClass, SpawnLocation, SpawnRotation);
-			}
-			else
-			{
-				const FRotator SpawnRotation = GetControlRotation();
-				// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-				const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
-
-				//Set Spawn Collision Handling Override
-				FActorSpawnParameters ActorSpawnParams;
-				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
-				// spawn the projectile at the muzzle
-				World->SpawnActor<APlatformer3DProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-			}*/
+		tempGun->OnAltFirePressed(outHit.ImpactPoint);
 	}
+	
+	tempGun->OnAltFirePressed(startLocation + FirstPersonCameraComponent->GetForwardVector() * 200);
 }
 
 void AMyCharacter::OnAltFire()
 {
-	// try and fire a projectile
-	if (GunClass)
-	{
 
-	}
-}
-
-void AMyCharacter::ParkourStart()
-{
-	ParkourKeyDown = true;
-}
-
-void AMyCharacter::ParkourEnd()
-{
-	ParkourKeyDown = false;
 }
 
 void AMyCharacter::Jump()
 {
+	JumpKeyDown = true;
+
 	if (IsWallRunning)
 	{
 		//walljump
@@ -213,7 +198,7 @@ void AMyCharacter::Jump()
 		StopWallrun();
 		JumpCount = 1;
 		CanWallRun = true;
-		ParkourKeyDown = false;
+		JumpKeyDown = false;
 	}
 	else
 	{
@@ -257,6 +242,12 @@ void AMyCharacter::Jump()
 			}
 		}
 	}
+}
+
+void AMyCharacter::StopJumping()
+{
+	JumpKeyDown = false;
+	Super::StopJumping();
 }
 
 void AMyCharacter::MoveForward(float Value)
@@ -355,6 +346,11 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	}
 
 	return WN_None;
+}
+
+ABaseGun * AMyCharacter::GetCurrentGun()
+{
+	return Guns[CurrentGunID];
 }
 
 void AMyCharacter::StopWallrun()
