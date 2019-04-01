@@ -98,7 +98,7 @@ public:
 
 	/** Line trace start location offset for additional wall detection*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
-		float LineTraceShift = 30;
+		float LineTraceShift = 20;
 
 	/** Gravity scale during vertical wallrunning*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
@@ -110,7 +110,7 @@ public:
 
 	/** Force applied to player when beginning vertical wallrun*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
-		float VerticalWallRunForce = 200.0f;
+		float VerticalWallRunForce = 300.0f;
 
 	/** Force applied to player when beginning horizontal wallrun*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)

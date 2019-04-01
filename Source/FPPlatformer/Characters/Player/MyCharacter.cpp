@@ -114,7 +114,7 @@ void AMyCharacter::Tick(float DeltaTime)
 			else
 			{
 				GetCharacterMovement()->GravityScale = HorizontalParkourGravityScale;
-				LaunchCharacter(FVector::VectorPlaneProject(FirstPersonCameraComponent->GetForwardVector(), AttachedWallNormal).GetUnsafeNormal2D() * HorizontalWallRunForce - AttachedWallNormal * WallStickForce, true, true);
+				LaunchCharacter(FVector::VectorPlaneProject(FirstPersonCameraComponent->GetForwardVector(), AttachedWallNormal).GetUnsafeNormal2D() * HorizontalWallRunForce + FVector(0.0f, 0.0f, VerticalWallRunForce / 3) - AttachedWallNormal * WallStickForce, true, true);
 			}
 		}
 	}
@@ -208,11 +208,12 @@ void AMyCharacter::Jump()
 	{
 		//walljump
 		FVector desiredVelocity = AttachedWallNormal * WallJumpForce;
-		//desiredVelocity.Z = GetCharacterMovement()->JumpZVelocity;
+		desiredVelocity.Z = GetCharacterMovement()->JumpZVelocity;
 		LaunchCharacter(desiredVelocity, true, true);
-		//StopWallrun();
+		StopWallrun();
 		JumpCount = 1;
 		CanWallRun = true;
+		ParkourKeyDown = false;
 	}
 	else
 	{
@@ -306,7 +307,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	FCollisionQueryParams collisionParams;	
 
 	// front
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorForwardVector() * (LineTraceRange + LineTraceShift), ECC_Visibility, collisionParams);
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorForwardVector() * LineTraceRange, ECC_Visibility, collisionParams);
 
 	if (isHit)
 	{
@@ -315,8 +316,8 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	}
 
 	//right side 1st check
-	startLocation.X += LineTraceShift;
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorForwardVector() * LineTraceRange, ECC_Visibility, collisionParams);
+	startLocation += GetActorForwardVector() * LineTraceShift;
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
 		DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
@@ -325,8 +326,8 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	}
 
 	//right side 2nd check
-	startLocation.X -= 2 * LineTraceShift;
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorForwardVector() * LineTraceRange, ECC_Visibility, collisionParams);
+	startLocation -= GetActorForwardVector() * LineTraceShift * 2;
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
 		DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
@@ -335,7 +336,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	}
 
 	//left side 1st check
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorForwardVector() * LineTraceRange, ECC_Visibility, collisionParams);
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
 		DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
@@ -344,8 +345,8 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	}
 
 	//left side 2nd check
-	startLocation.X += 2 * LineTraceShift;
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorForwardVector() * LineTraceRange, ECC_Visibility, collisionParams);
+	startLocation += GetActorForwardVector() * LineTraceShift * 2;
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
 		DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
