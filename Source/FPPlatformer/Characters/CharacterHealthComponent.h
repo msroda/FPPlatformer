@@ -7,13 +7,16 @@
 #include "CharacterHealthComponent.generated.h"
 
 UENUM()	
-enum EDamageType
+enum class EDamageType
 {
 	DMG_Physical,
 	DMG_Explosive,
 	DMG_Ice,
-	DMG_Fire
+	DMG_Fire,
+	DMG_Energy
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FKillCharacter);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FPPLATFORMER_API UCharacterHealthComponent : public UActorComponent
@@ -46,12 +49,18 @@ public:
 
 	/** Character's fire dmg resistance */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Resistance)
-		float IceResistance = 0.0f;
+		float FireResistance = 0.0f;
 
 	/** Character's ice dmg resistance */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Resistance)
-		float FireResistance = 0.0f;
+		float IceResistance = 0.0f;
 
+	/** Character's energy dmg resistance */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Resistance)
+		float EnergyResistance = 0.0f;
+
+	UPROPERTY()
+		FKillCharacter KillCharacter;
 
 protected:
 	// Called when the game starts

@@ -22,7 +22,10 @@ protected:
 	/** Spawn and shoot projectile */
 	void ShootProjectile(FVector target, TSubclassOf<class AActor> projectileClass, float speed);
 
-	/** Shoot hitscam */
+	/** Spawn and shoot projectile */
+	bool ShootHitscan(FVector target, FHitResult &outHit);
+
+	/** Muzzle position */
 	FVector MuzzleOffset;
 
 public:	

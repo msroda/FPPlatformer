@@ -17,14 +17,29 @@ public:
 	ABaseProjectile();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-		class UProjectileMovementComponent* ProjectileMovement;
+		UProjectileMovementComponent* ProjectileMovement;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		UPrimitiveComponent* ProjectilePrimitive;
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	/** When  */
+	//virtual void OnHit();
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	void SetVelocity(FVector newVelocity);
+
+	UFUNCTION()
+	void OnHit(UPrimitiveComponent * HitComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, FVector NormalImpulse, const FHitResult & Hit);
+
+private:
+	bool velocitySet;
+
+	FVector desiredVelocity;
 };

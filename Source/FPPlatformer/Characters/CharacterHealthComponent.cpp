@@ -38,20 +38,30 @@ void UCharacterHealthComponent::Damage(EDamageType dmgType, float value)
 	switch (dmgType)
 	{
 	case EDamageType::DMG_Physical:
-		MaxHealth -= value * (1 - PhysicalResistance);
+		CurrentHealth -= value * (1 - PhysicalResistance);
 		break;
 
 	case EDamageType::DMG_Explosive:
-		MaxHealth -= value * (1 - ExplosiveResistance);
+		CurrentHealth -= value * (1 - ExplosiveResistance);
 		break;
 
 	case EDamageType::DMG_Fire:
-		MaxHealth -= value * (1 - FireResistance);
+		CurrentHealth -= value * (1 - FireResistance);
 		break;
 
 	case EDamageType::DMG_Ice:
-		MaxHealth -= value * (1 - IceResistance);
+		CurrentHealth -= value * (1 - IceResistance);
 		break;
+
+	case EDamageType::DMG_Energy:
+		CurrentHealth -= value * (1 - EnergyResistance);
+		break;
+	}
+
+	CurrentHealth = FMath::Max(CurrentHealth, 0.0f);
+	if (CurrentHealth == 0.0f)
+	{
+		KillCharacter.Broadcast();
 	}
 }
 

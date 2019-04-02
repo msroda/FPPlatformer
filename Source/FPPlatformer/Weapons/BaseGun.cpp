@@ -2,7 +2,9 @@
 
 #include "BaseGun.h"
 #include "Weapons/BaseProjectile.h"
+#include "Runtime/Engine/Classes/Components/PrimitiveComponent.h"
 #include "Runtime/Engine/Classes/Engine/World.h"
+#include "Runtime/Engine/Public/DrawDebugHelpers.h"
 
 // Sets default values
 ABaseGun::ABaseGun()
@@ -51,10 +53,51 @@ void ABaseGun::ShootProjectile(FVector target, TSubclassOf<class AActor> project
 		ABaseProjectile* projectile = World->SpawnActor<ABaseProjectile>(projectileClass, GetActorLocation() + MuzzleOffset, GetActorRotation(), SpawnParams);
 		if (projectile && projectile->ProjectileMovement)
 		{
-			projectile->ProjectileMovement->Velocity = ((target - (GetActorLocation() + MuzzleOffset)).GetUnsafeNormal() * speed);
-			//projectile->InitialLifeSpan = 1.0f;
-			//projectile->ProjectileMovement->InitialSpeed = 100;
+			UPrimitiveComponent* bulletPrimitive = projectile->FindComponentByClass<UPrimitiveComponent>();
+
+			AActor* myparent = GetParentActor();
+
+			if (myparent && bulletPrimitive)
+			{
+				bulletPrimitive->IgnoreActorWhenMoving(myparent, true);
+			}
+
+			FVector velocity = (target - (GetActorLocation() + MuzzleOffset)).GetUnsafeNormal() * speed;
+
+			projectile->SetVelocity(velocity);
 		}
+	}
+}
+
+bool ABaseGun::ShootHitscan(FVector target, FHitResult & outHit)
+{
+	TArray<FHitResult> outHits;
+	FHitResult* tempHit = nullptr;
+	bool isHit = false;
+
+	FCollisionQueryParams collisionParams;
+
+	isHit = GetWorld()->LineTraceMultiByChannel(outHits, GetActorLocation() + MuzzleOffset, target, ECC_Visibility, collisionParams);
+
+	//ignore self collision
+	for (auto hit : outHits)
+	{
+		if (hit.Actor != GetParentActor())
+		{
+			tempHit = &hit;
+			break;
+		}
+	}
+
+	if (isHit && tempHit)
+	{
+		outHit = *tempHit;
+		return true;
+	}
+
+	else
+	{
+		return false;
 	}
 }
 

@@ -5,7 +5,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "Runtime/Engine/Classes/GameFramework/CharacterMovementComponent.h"
-#include "Runtime/Engine/Public/DrawDebugHelpers.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter()
@@ -85,7 +84,6 @@ void AMyCharacter::Tick(float DeltaTime)
 			if (isHit)
 			{
 				AttachedWallNormal = outHit.ImpactNormal;
-				DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
 			}
 			//2nd check
 			else
@@ -96,7 +94,6 @@ void AMyCharacter::Tick(float DeltaTime)
 				if (isHit)
 				{
 					AttachedWallNormal = outHit.ImpactNormal;
-					DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
 				}
 				else
 				{
@@ -140,11 +137,11 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-// Bind fire event
-PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyCharacter::OnFire);
-
-// Bind fire event
-PlayerInputComponent->BindAction("Fire2", IE_Pressed, this, &AMyCharacter::OnAltFire);
+// Bind fire events
+PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyCharacter::OnFirePressed);
+PlayerInputComponent->BindAction("Fire", IE_Released, this, &AMyCharacter::OnFireReleased);
+PlayerInputComponent->BindAction("AltFire", IE_Pressed, this, &AMyCharacter::OnAltFirePressed);
+PlayerInputComponent->BindAction("AltFire", IE_Released, this, &AMyCharacter::OnAltFireReleased);
 
 // Bind movement events
 PlayerInputComponent->BindAxis("MoveForward", this, &AMyCharacter::MoveForward);
@@ -160,7 +157,7 @@ PlayerInputComponent->BindAxis("LookUpRate", this, &AMyCharacter::LookUpAtRate);
 
 }
 
-void AMyCharacter::OnFire()
+void AMyCharacter::OnFirePressed()
 {
 	FHitResult outHit;
 	bool isHit = false;
@@ -170,19 +167,82 @@ void AMyCharacter::OnFire()
 	FCollisionQueryParams collisionParams;
 
 	// front
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + FirstPersonCameraComponent->GetForwardVector() * 200, ECC_Visibility, collisionParams);
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange, ECC_Visibility, collisionParams);
+
+	if (isHit)
+	{
+		tempGun->OnFirePressed(outHit.ImpactPoint);
+	}
+	else
+	{
+		tempGun->OnFirePressed(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
+	}
+}
+
+void AMyCharacter::OnFireReleased()
+{
+	FHitResult outHit;
+	bool isHit = false;
+
+	FVector startLocation = FirstPersonCameraComponent->GetComponentLocation();
+
+	FCollisionQueryParams collisionParams;
+
+	// front
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange, ECC_Visibility, collisionParams);
+
+	if (isHit)
+	{
+		tempGun->OnFireReleased(outHit.ImpactPoint);
+	}
+	else
+	{
+		tempGun->OnFireReleased(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
+	}
+}
+
+void AMyCharacter::OnAltFirePressed()
+{
+	FHitResult outHit;
+	bool isHit = false;
+
+	FVector startLocation = FirstPersonCameraComponent->GetComponentLocation();
+
+	FCollisionQueryParams collisionParams;
+
+	// front
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange, ECC_Visibility, collisionParams);
 
 	if (isHit)
 	{
 		tempGun->OnAltFirePressed(outHit.ImpactPoint);
 	}
-	
-	tempGun->OnAltFirePressed(startLocation + FirstPersonCameraComponent->GetForwardVector() * 200);
+	else
+	{
+		tempGun->OnAltFirePressed(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
+	}
 }
 
-void AMyCharacter::OnAltFire()
+void AMyCharacter::OnAltFireReleased()
 {
+	FHitResult outHit;
+	bool isHit = false;
 
+	FVector startLocation = FirstPersonCameraComponent->GetComponentLocation();
+
+	FCollisionQueryParams collisionParams;
+
+	// front
+	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange, ECC_Visibility, collisionParams);
+
+	if (isHit)
+	{
+		tempGun->OnAltFireReleased(outHit.ImpactPoint);
+	}
+	else
+	{
+		tempGun->OnAltFireReleased(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
+	}
 }
 
 void AMyCharacter::Jump()
@@ -311,7 +371,6 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
-		DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
 		wallNormal = outHit.ImpactNormal;
 		return WN_Side;
 	}
@@ -321,7 +380,6 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
-		DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
 		wallNormal = outHit.ImpactNormal;
 		return WN_Side;
 	}
@@ -330,7 +388,6 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
-		DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
 		wallNormal = outHit.ImpactNormal;
 		return WN_Side;
 	}
@@ -340,7 +397,6 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
-		DrawDebugLine(GetWorld(), outHit.ImpactPoint, outHit.ImpactPoint + outHit.ImpactNormal * LineTraceRange, FColor::Green, false, 1, 0, 1);
 		wallNormal = outHit.ImpactNormal;
 		return WN_Side;
 	}

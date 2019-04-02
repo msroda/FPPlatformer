@@ -10,6 +10,7 @@ ABaseProjectile::ABaseProjectile()
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
 
+	velocitySet = true;
 }
 
 // Called when the game starts or when spawned
@@ -17,6 +18,10 @@ void ABaseProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	ProjectilePrimitive = FindComponentByClass<UPrimitiveComponent>();
+	if(ProjectilePrimitive)
+		ProjectilePrimitive->OnComponentHit.AddDynamic(this, &ABaseProjectile::OnHit);
+
 }
 
 // Called every frame
@@ -24,5 +29,22 @@ void ABaseProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (!velocitySet)
+	{
+		//velocitySet = true;
+		ProjectileMovement->Velocity = desiredVelocity;
+	}
+
 }
 
+
+void ABaseProjectile::SetVelocity(FVector newVelocity)
+{
+	desiredVelocity = newVelocity;
+	velocitySet = false;
+}
+
+void ABaseProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	Destroy();
+}

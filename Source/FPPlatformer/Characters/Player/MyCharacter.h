@@ -30,14 +30,17 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	/** Primary gun action */
-	void OnFire();
+	/** Primary gun pressed action */
+	void OnFirePressed();
 
-	/** Secondary gun action */
-	void OnAltFire();
+	/** Primary gun released action */
+	void OnFireReleased();
 
-	/** Resets HMD orientation and position in VR. */
-	void OnResetVR();
+	/** Secondary gun pressed action */
+	void OnAltFirePressed();
+
+	/** Secondary gun released action */
+	void OnAltFireReleased();
 
 	/** Handles moving forward/backward */
 	void MoveForward(float Val);
@@ -72,6 +75,10 @@ public:
 	/** Gun local position */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
 		FVector GunOffset;
+
+	/** Range of gun */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
+		float ShootRange = 3000.0f;
 
 	/** How many additional jumps can player perform airborne*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
