@@ -17,7 +17,8 @@ EBTNodeResult::Type UBTTask_GetNextWaypoint::ExecuteTask(UBehaviorTreeComponent&
 
 	if (BomberCharacter && BomberCharacter->GetNextWaypoint(newTarget))
 	{
-		BomberController->BlackboardComponent->SetValueAsObject("CurrentTargetPoint", newTarget);
+		//BomberController->BlackboardComponent->SetValueAsObject("CurrentTargetPoint", newTarget);
+		BomberController->BlackboardComponent->SetValueAsVector("TargetLocation", newTarget->GetActorLocation());
 
 		if (newTarget)
 			return EBTNodeResult::Succeeded;

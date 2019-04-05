@@ -8,6 +8,6 @@ AFPPlatformerGameModeBase::AFPPlatformerGameModeBase()
 	: Super()
 {
 	// set default pawn class to our Blueprinted character
-	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/FPCharacter"));
+	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/Characters/Player/FPCharacter"));
 	DefaultPawnClass = PlayerPawnClassFinder.Class;
 }

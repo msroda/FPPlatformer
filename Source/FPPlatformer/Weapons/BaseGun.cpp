@@ -60,6 +60,7 @@ void ABaseGun::ShootProjectile(FVector target, TSubclassOf<class AActor> project
 			if (myparent && bulletPrimitive)
 			{
 				bulletPrimitive->IgnoreActorWhenMoving(myparent, true);
+				projectile->Shooter = myparent;
 			}
 
 			FVector velocity = (target - (GetActorLocation() + MuzzleOffset)).GetUnsafeNormal() * speed;

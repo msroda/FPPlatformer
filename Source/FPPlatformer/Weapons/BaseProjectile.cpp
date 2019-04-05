@@ -19,8 +19,11 @@ void ABaseProjectile::BeginPlay()
 	Super::BeginPlay();
 	
 	ProjectilePrimitive = FindComponentByClass<UPrimitiveComponent>();
-	if(ProjectilePrimitive)
+	if (ProjectilePrimitive)
+	{
 		ProjectilePrimitive->OnComponentHit.AddDynamic(this, &ABaseProjectile::OnHit);
+		ProjectilePrimitive->OnComponentBeginOverlap.AddDynamic(this, &ABaseProjectile::OnOverlapBegin);
+	}
 
 }
 
@@ -46,5 +49,24 @@ void ABaseProjectile::SetVelocity(FVector newVelocity)
 
 void ABaseProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	UCharacterHealthComponent* HPComp = OtherActor->FindComponentByClass<UCharacterHealthComponent>();
+
+	if (HPComp)
+	{
+		HPComp->Damage(DamageType, Damage);
+	}
+
+	Destroy();
+}
+
+void ABaseProjectile::OnOverlapBegin(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+{
+	UCharacterHealthComponent* HPComp = OtherActor->FindComponentByClass<UCharacterHealthComponent>();
+
+	if (HPComp)
+	{
+		HPComp->Damage(DamageType, Damage);
+	}
+
 	Destroy();
 }
