@@ -31,7 +31,7 @@ void AShockPistol::OnFirePressed(FVector target)
 		TArray<AActor*> actorsToIgnore;
 		actorsToIgnore.Add(GetParentActor());
 
-		isHit = UKismetSystemLibrary::SphereTraceSingle(this, GetActorLocation() + MuzzleOffset, target, 0.5f, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::Persistent, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
+		isHit = UKismetSystemLibrary::SphereTraceSingle(this, GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), target, 0.5f, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::Persistent, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 
 		if (isHit)
 		{
@@ -41,12 +41,12 @@ void AShockPistol::OnFirePressed(FVector target)
 				otherHP->Damage(PrimaryDamageType, PrimaryDamage);
 			}
 
-			GetWorld()->LineBatcher->DrawLine(GetActorLocation() + MuzzleOffset, outHit.ImpactPoint, FLinearColor(FColor::Yellow), SDPG_Foreground, 0.1, 1.0f);
+			GetWorld()->LineBatcher->DrawLine(GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), outHit.ImpactPoint, FLinearColor(FColor::Yellow), SDPG_Foreground, 0.1, 1.0f);
 		}
 
 		else
 		{
-			GetWorld()->LineBatcher->DrawLine(GetActorLocation() + MuzzleOffset, target, FLinearColor(FColor::Yellow), SDPG_Foreground, 1, 1.0f);
+			GetWorld()->LineBatcher->DrawLine(GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), target, FLinearColor(FColor::Yellow), SDPG_Foreground, 1, 1.0f);
 		}
 	}
 }

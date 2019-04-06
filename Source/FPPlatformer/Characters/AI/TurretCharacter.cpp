@@ -27,7 +27,8 @@ ATurretCharacter::ATurretCharacter()
 void ATurretCharacter::OnSeePlayer(APawn * Pawn)
 {
 	CanSeePlayer = true;
-	SenseTimer = 0.0f;
+	IsAlerted = true;
+	AlertTimer = 0.0f;
 	TargetPawn = Pawn;
 }
 
@@ -48,6 +49,16 @@ void ATurretCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (IsAlerted)
+	{
+		AlertTimer += DeltaTime;
+
+		if (AlertTimer > PlayerLoseTime)
+			CanSeePlayer = false;
+
+		if (AlertTimer > AlertTime)
+			IsAlerted = false;
+	}
 }
 
 // Called to bind functionality to input
@@ -78,7 +89,7 @@ bool ATurretCharacter::ShootPlayer()
 		{
 			FActorSpawnParameters SpawnParams;
 
-			ABaseProjectile* projectile = World->SpawnActor<ABaseProjectile>(Projectile, GetActorLocation() + MuzzleOffset, GetActorRotation(), SpawnParams);
+			ABaseProjectile* projectile = World->SpawnActor<ABaseProjectile>(Projectile, GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), GetActorRotation(), SpawnParams);
 			if (projectile && projectile->ProjectileMovement)
 			{
 				UPrimitiveComponent* bulletPrimitive = projectile->FindComponentByClass<UPrimitiveComponent>();

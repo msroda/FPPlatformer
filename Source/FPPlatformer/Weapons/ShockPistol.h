@@ -27,11 +27,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float AltFireProjectileLaunchSpeed = 600;
 
-	/** Velocity applied to projectile on spawn */
+	/** Primary fire cooldown */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float FireCooldown = 0.3f;
 	
-	/** Velocity applied to projectile on spawn */
+	/** Secondary fire cooldown */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float AltFireCooldown = 1.0f;
 
@@ -39,10 +39,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		EDamageType PrimaryDamageType = EDamageType::DMG_Energy;
 
-	/** Primary fire damage type*/
+	/** Primary fire damage*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float PrimaryDamage = 50;
-
 
 
 protected:
@@ -62,7 +61,7 @@ protected:
 	/** Secondary fire start */
 	virtual void OnAltFirePressed(FVector target) override;
 
-	/** Secondary fire's cooldown end */
+	/** Primary fire's cooldown end */
 	void EndCooldown();
 	
 	/** Secondary fire's cooldown end */

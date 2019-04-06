@@ -23,6 +23,7 @@ void UBTService_ReadTurretSenses::TickNode(UBehaviorTreeComponent & OwnerComp, u
 				OwnerComp.GetBlackboardComponent()->SetValueAsObject("TargetActor", character->TargetPawn);
 			OwnerComp.GetBlackboardComponent()->SetValueAsBool("CanSeePlayer", character->CanSeePlayer);
 			OwnerComp.GetBlackboardComponent()->SetValueAsBool("CanShoot", character->CanShoot);
+			OwnerComp.GetBlackboardComponent()->SetValueAsBool("IsAlerted", character->IsAlerted);
 		}
 	}
 }

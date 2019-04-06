@@ -15,18 +15,21 @@ public:
 	// Sets default values for this actor's properties
 	ABaseGun();
 
+	/** Muzzle position */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
+	FVector MuzzleOffset;
+
+	virtual void SetActive(bool active);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;	
 
 	/** Spawn and shoot projectile */
-	void ShootProjectile(FVector target, TSubclassOf<class AActor> projectileClass, float speed);
+	AActor* ShootProjectile(FVector target, TSubclassOf<class AActor> projectileClass, float speed);
 
 	/** Spawn and shoot projectile */
 	bool ShootHitscan(FVector target, FHitResult &outHit);
-
-	/** Muzzle position */
-	FVector MuzzleOffset;
 
 public:	
 	// Called every frame
@@ -44,4 +47,5 @@ public:
 	/** Secondary fire stop */
 	virtual void OnAltFireReleased(FVector target);
 
+	bool IsActive;
 };

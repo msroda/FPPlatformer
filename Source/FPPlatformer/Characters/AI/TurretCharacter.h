@@ -33,7 +33,7 @@ public:
 		float PlayerLoseTime = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Senses)
-		float SenseTimer;
+		float AlertTime = 5.0f;
 
 	UFUNCTION()
 		void OnSeePlayer(APawn* Pawn);
@@ -42,6 +42,8 @@ public:
 		void Die();
 
 	APawn* TargetPawn = nullptr;
+
+	bool IsAlerted = false;
 
 	bool CanSeePlayer = false;
 
@@ -86,4 +88,8 @@ public:
 	bool ShootPlayer();
 
 	void EndCooldown();
+
+private:
+
+	float AlertTimer = 0.0f;
 };

@@ -38,20 +38,23 @@ void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	TArray<AActor*> tempArray;
-	GetAllChildActors(tempArray, false);
+	TArray<AActor*> children;
+	GetAllChildActors(children, false);
 
-	tempGun = dynamic_cast<ABaseGun*>(tempArray[0]);
-	
-	/*for (auto GunClass : GunsClasses)
+	for (auto child : children)
 	{
-		ABaseGun* spawned;
-		FActorSpawnParameters params;
-		spawned = GetWorld()->SpawnActorAbsolute(GunClass, GetActorLocation() + gunffset, params);
-		spawned->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
-		spawned->SetOwner(this);
-		Guns.Add(spawned);
-	}*/
+		ABaseGun* gun = Cast<ABaseGun>(child);
+		if (gun)
+		{
+			Guns.Add(gun);
+			gun->SetActive(false);
+		}
+	}
+
+	if (Guns.Num() > 0)
+	{
+		Guns[0]->SetActive(true);
+	}
 }
 
 // Called every frame
@@ -143,6 +146,11 @@ PlayerInputComponent->BindAction("Fire", IE_Released, this, &AMyCharacter::OnFir
 PlayerInputComponent->BindAction("AltFire", IE_Pressed, this, &AMyCharacter::OnAltFirePressed);
 PlayerInputComponent->BindAction("AltFire", IE_Released, this, &AMyCharacter::OnAltFireReleased);
 
+// Bind weapon slot change events
+PlayerInputComponent->BindAction("WeaponSlot1", IE_Pressed, this, &AMyCharacter::GetSlotOne);
+PlayerInputComponent->BindAction("WeaponSlot2", IE_Pressed, this, &AMyCharacter::GetSlotTwo);
+PlayerInputComponent->BindAction("WeaponSlot3", IE_Pressed, this, &AMyCharacter::GetSlotThree);
+
 // Bind movement events
 PlayerInputComponent->BindAxis("MoveForward", this, &AMyCharacter::MoveForward);
 PlayerInputComponent->BindAxis("MoveRight", this, &AMyCharacter::MoveRight);
@@ -171,11 +179,11 @@ void AMyCharacter::OnFirePressed()
 
 	if (isHit)
 	{
-		tempGun->OnFirePressed(outHit.ImpactPoint);
+		GetCurrentGun()->OnFirePressed(outHit.ImpactPoint);
 	}
 	else
 	{
-		tempGun->OnFirePressed(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
+		GetCurrentGun()->OnFirePressed(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
 	}
 }
 
@@ -193,11 +201,11 @@ void AMyCharacter::OnFireReleased()
 
 	if (isHit)
 	{
-		tempGun->OnFireReleased(outHit.ImpactPoint);
+		GetCurrentGun()->OnFireReleased(outHit.ImpactPoint);
 	}
 	else
 	{
-		tempGun->OnFireReleased(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
+		GetCurrentGun()->OnFireReleased(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
 	}
 }
 
@@ -215,11 +223,11 @@ void AMyCharacter::OnAltFirePressed()
 
 	if (isHit)
 	{
-		tempGun->OnAltFirePressed(outHit.ImpactPoint);
+		GetCurrentGun()->OnAltFirePressed(outHit.ImpactPoint);
 	}
 	else
 	{
-		tempGun->OnAltFirePressed(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
+		GetCurrentGun()->OnAltFirePressed(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
 	}
 }
 
@@ -237,11 +245,11 @@ void AMyCharacter::OnAltFireReleased()
 
 	if (isHit)
 	{
-		tempGun->OnAltFireReleased(outHit.ImpactPoint);
+		GetCurrentGun()->OnAltFireReleased(outHit.ImpactPoint);
 	}
 	else
 	{
-		tempGun->OnAltFireReleased(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
+		GetCurrentGun()->OnAltFireReleased(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
 	}
 }
 
@@ -338,6 +346,33 @@ void AMyCharacter::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+void AMyCharacter::GetSlotOne()
+{
+	SwitchWeapon(0);
+}
+
+void AMyCharacter::GetSlotTwo()
+{
+	SwitchWeapon(1);
+}
+
+void AMyCharacter::GetSlotThree()
+{
+	SwitchWeapon(2);
+}
+
+void AMyCharacter::SwitchWeapon(int id)
+{
+	if (Guns.Num() > 0)
+	{
+		CurrentGunID = id;
+		for (int i = 0; i < Guns.Num(); i++)
+		{
+			Guns[i]->SetActive(i == CurrentGunID ? true : false);
+		}
+	}
 }
 
 void AMyCharacter::Landed(const FHitResult & Hit)

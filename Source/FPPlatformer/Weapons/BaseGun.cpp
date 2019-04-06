@@ -42,7 +42,7 @@ void ABaseGun::OnAltFireReleased(FVector target)
 
 }
 
-void ABaseGun::ShootProjectile(FVector target, TSubclassOf<class AActor> projectileClass, float speed)
+AActor* ABaseGun::ShootProjectile(FVector target, TSubclassOf<class AActor> projectileClass, float speed)
 {
 	UWorld* const World = GetWorld();
 	if (World)
@@ -50,7 +50,7 @@ void ABaseGun::ShootProjectile(FVector target, TSubclassOf<class AActor> project
 		FActorSpawnParameters SpawnParams;
 
 		// spawn the projectile at the muzzle
-		ABaseProjectile* projectile = World->SpawnActor<ABaseProjectile>(projectileClass, GetActorLocation() + MuzzleOffset, GetActorRotation(), SpawnParams);
+		ABaseProjectile* projectile = World->SpawnActor<ABaseProjectile>(projectileClass, GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), GetActorRotation(), SpawnParams);
 		if (projectile && projectile->ProjectileMovement)
 		{
 			UPrimitiveComponent* bulletPrimitive = projectile->FindComponentByClass<UPrimitiveComponent>();
@@ -63,11 +63,13 @@ void ABaseGun::ShootProjectile(FVector target, TSubclassOf<class AActor> project
 				projectile->Shooter = myparent;
 			}
 
-			FVector velocity = (target - (GetActorLocation() + MuzzleOffset)).GetUnsafeNormal() * speed;
+			FVector velocity = (target - (GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset))).GetUnsafeNormal() * speed;
 
 			projectile->SetVelocity(velocity);
+			return projectile;
 		}
 	}
+	return nullptr;
 }
 
 bool ABaseGun::ShootHitscan(FVector target, FHitResult & outHit)
@@ -78,7 +80,7 @@ bool ABaseGun::ShootHitscan(FVector target, FHitResult & outHit)
 
 	FCollisionQueryParams collisionParams;
 
-	isHit = GetWorld()->LineTraceMultiByChannel(outHits, GetActorLocation() + MuzzleOffset, target, ECC_Visibility, collisionParams);
+	isHit = GetWorld()->LineTraceMultiByChannel(outHits, GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), target, ECC_Visibility, collisionParams);
 
 	//ignore self collision
 	for (auto hit : outHits)
@@ -100,6 +102,11 @@ bool ABaseGun::ShootHitscan(FVector target, FHitResult & outHit)
 	{
 		return false;
 	}
+}
+
+void ABaseGun::SetActive(bool active)
+{
+	IsActive = active;
 }
 
 // Called every frame
