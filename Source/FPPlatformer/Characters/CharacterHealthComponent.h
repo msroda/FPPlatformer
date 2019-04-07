@@ -17,6 +17,7 @@ enum class EDamageType
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FKillCharacter);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDamageCharacter, float, damage, EDamageType, damageType);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FPPLATFORMER_API UCharacterHealthComponent : public UActorComponent
@@ -61,6 +62,9 @@ public:
 
 	UPROPERTY()
 		FKillCharacter KillCharacter;
+
+	UPROPERTY()
+		FDamageCharacter DamageCharacter;
 
 protected:
 	// Called when the game starts

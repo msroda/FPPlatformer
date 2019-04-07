@@ -23,8 +23,8 @@ void AShockPistol::OnFirePressed(FVector target)
 	if (!IsOnCooldown)
 	{
 		IsOnCooldown = true;
-		GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &AShockPistol::EndCooldown, FireCooldown, true, FireCooldown);
-		
+		GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &AShockPistol::EndCooldown, FireCooldown, false, FireCooldown);
+
 		FHitResult outHit;
 		bool isHit = false;
 

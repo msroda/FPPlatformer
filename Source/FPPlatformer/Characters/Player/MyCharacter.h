@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Characters/CharacterHealthComponent.h"
 #include "Weapons/BaseGun.h"
+#include "Engine/Public/TimerManager.h"
 #include "MyCharacter.generated.h"
 
 UENUM()
@@ -13,7 +14,8 @@ enum EWallNeighborhood
 {
 	WN_None,
 	WN_Front,
-	WN_Side
+	WN_Right,
+	WN_Left
 };
 
 UCLASS()
@@ -25,50 +27,6 @@ public:
 	// Sets default values for this character's properties
 	AMyCharacter();
 
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	/** Primary gun pressed action */
-	void OnFirePressed();
-
-	/** Primary gun released action */
-	void OnFireReleased();
-
-	/** Secondary gun pressed action */
-	void OnAltFirePressed();
-
-	/** Secondary gun released action */
-	void OnAltFireReleased();
-
-	/** Handles moving forward/backward */
-	void MoveForward(float Val);
-
-	/** Handles stafing movement, left and right */
-	void MoveRight(float Val);
-
-	/**
-	 * Called via input to turn at a given rate.
-	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
-	 */
-	void TurnAtRate(float Rate);
-
-	/**
-	 * Called via input to turn look up/down at a given rate.
-	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
-	 */
-	void LookUpAtRate(float Rate);
-
-	void GetSlotOne();
-
-	void GetSlotTwo();
-
-	void GetSlotThree();
-
-	void SwitchWeapon(int id);
-
-public:
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		float BaseTurnRate;
@@ -141,9 +99,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
 		float WallJumpForce = 500.0f;
 
-	/** Guns to spawn */
-	UPROPERTY(EditDefaultsOnly, Category = Guns)
-		TArray<TSubclassOf<ABaseGun>> GunsClasses;
+	//Dodge force
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Dodge)
+		float DodgeForce = 500.0f;
+
+	//Dodge force
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Dodge)
+		float DodgeTime = 0.2f;
+
+	//Dodge force
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Dodge)
+		float DodgeCooldown = 1.0f;
 
 	/** Called every frame */
 	virtual void Tick(float DeltaTime) override;
@@ -160,6 +126,68 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	// Health Component
+	UCharacterHealthComponent* CharacterHealth;
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+	/** Primary gun pressed action */
+	void OnFirePressed();
+
+	/** Dodge action */
+	void Dodge();
+
+	// Dodge end
+	void StopDodging();
+
+	// Reset dodge
+	void ResetDodge();
+
+	/** Primary gun released action */
+	void OnFireReleased();
+
+	/** Secondary gun pressed action */
+	void OnAltFirePressed();
+
+	/** Secondary gun released action */
+	void OnAltFireReleased();
+
+	/** Handles moving forward/backward */
+	void MoveForward(float Val);
+
+	/** Handles stafing movement, left and right */
+	void MoveRight(float Val);
+
+	/**
+	 * Called via input to turn at a given rate.
+	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
+	 */
+	void TurnAtRate(float Rate);
+
+	/**
+	 * Called via input to turn look up/down at a given rate.
+	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
+	 */
+	void LookUpAtRate(float Rate);
+
+	void GetSlotOne();
+
+	void GetSlotTwo();
+
+	void GetSlotThree();
+
+	void SwitchWeapon(int id);
+
+	FTimerHandle DodgeTimerHandle;
+
+public:
+	/** For clearing timers when bullet is destroyed */
+	virtual void Destroyed() override;
+		/** For clearing timers when game stops */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 private:
 	/** Double jumps count */
 	int	JumpCount;
@@ -175,6 +203,12 @@ private:
 
 	/** If the player is wallrunning */
 	bool IsWallRunning;
+
+	bool IsDodging;
+
+	bool CanDodge;
+
+	float OriginalFriction;
 
 	/** Normal of the wall the player is close to/running on */
 	FVector AttachedWallNormal;
@@ -193,9 +227,6 @@ private:
 
 	/** Performed when player stops wallrunning*/
 	void StopWallrun();
-
-	/** Health Component*/
-	UCharacterHealthComponent* CharacterHealth;
 
 	/** Spawned guns */
 	TArray<ABaseGun*> Guns;

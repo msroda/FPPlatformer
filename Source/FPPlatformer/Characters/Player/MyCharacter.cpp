@@ -4,7 +4,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
-#include "Runtime/Engine/Classes/GameFramework/CharacterMovementComponent.h"
+#include "Engine/Classes/GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter()
@@ -31,6 +31,8 @@ AMyCharacter::AMyCharacter()
 
 	IsWallRunning = false;
 	CanWallRun = true;
+	CanDodge = true;
+	IsDodging = false;
 }
 
 // Called when the game starts or when spawned
@@ -55,6 +57,10 @@ void AMyCharacter::BeginPlay()
 	{
 		Guns[0]->SetActive(true);
 	}
+
+	UCharacterMovementComponent* movement = Cast<UCharacterMovementComponent>(GetMovementComponent());
+	if (movement)
+		OriginalFriction = movement->GroundFriction;
 }
 
 // Called every frame
@@ -65,7 +71,7 @@ void AMyCharacter::Tick(float DeltaTime)
 	if (IsWallRunning)
 	{
 		//check if the wallrunning needs to be stopped by the gravity
-		if ((WallNeighborhood == WN_Front && GetVelocity().Z < MinVerticalZSpeed) || (WallNeighborhood == WN_Side && GetVelocity().Z < MinHorizontalZSpeed))
+		if ((WallNeighborhood == WN_Front && GetVelocity().Z < MinVerticalZSpeed) || ((WallNeighborhood == WN_Left || WallNeighborhood == WN_Right) && GetVelocity().Z < MinHorizontalZSpeed))
 		{
 			StopWallrun();
 		}
@@ -124,7 +130,7 @@ void AMyCharacter::Tick(float DeltaTime)
 			else
 			{
 				GetCharacterMovement()->GravityScale = HorizontalParkourGravityScale;
-				LaunchCharacter(FVector::VectorPlaneProject(FirstPersonCameraComponent->GetForwardVector(), AttachedWallNormal).GetUnsafeNormal2D() * HorizontalWallRunForce + FVector(0.0f, 0.0f, VerticalWallRunForce / 3) - AttachedWallNormal * WallStickForce, true, true);
+				LaunchCharacter(FVector::VectorPlaneProject(FirstPersonCameraComponent->GetForwardVector(), AttachedWallNormal).GetUnsafeNormal2D() * HorizontalWallRunForce + FVector(0.0f, 0.0f, VerticalWallRunForce * 0.5f) - AttachedWallNormal * WallStickForce, true, true);
 			}
 		}
 	}
@@ -140,28 +146,31 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-// Bind fire events
-PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyCharacter::OnFirePressed);
-PlayerInputComponent->BindAction("Fire", IE_Released, this, &AMyCharacter::OnFireReleased);
-PlayerInputComponent->BindAction("AltFire", IE_Pressed, this, &AMyCharacter::OnAltFirePressed);
-PlayerInputComponent->BindAction("AltFire", IE_Released, this, &AMyCharacter::OnAltFireReleased);
+	// Bind jump events
+	PlayerInputComponent->BindAction("Dodge", IE_Pressed, this, &AMyCharacter::Dodge);
 
-// Bind weapon slot change events
-PlayerInputComponent->BindAction("WeaponSlot1", IE_Pressed, this, &AMyCharacter::GetSlotOne);
-PlayerInputComponent->BindAction("WeaponSlot2", IE_Pressed, this, &AMyCharacter::GetSlotTwo);
-PlayerInputComponent->BindAction("WeaponSlot3", IE_Pressed, this, &AMyCharacter::GetSlotThree);
+	// Bind fire events
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyCharacter::OnFirePressed);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AMyCharacter::OnFireReleased);
+	PlayerInputComponent->BindAction("AltFire", IE_Pressed, this, &AMyCharacter::OnAltFirePressed);
+	PlayerInputComponent->BindAction("AltFire", IE_Released, this, &AMyCharacter::OnAltFireReleased);
 
-// Bind movement events
-PlayerInputComponent->BindAxis("MoveForward", this, &AMyCharacter::MoveForward);
-PlayerInputComponent->BindAxis("MoveRight", this, &AMyCharacter::MoveRight);
+	// Bind weapon slot change events
+	PlayerInputComponent->BindAction("WeaponSlot1", IE_Pressed, this, &AMyCharacter::GetSlotOne);
+	PlayerInputComponent->BindAction("WeaponSlot2", IE_Pressed, this, &AMyCharacter::GetSlotTwo);
+	PlayerInputComponent->BindAction("WeaponSlot3", IE_Pressed, this, &AMyCharacter::GetSlotThree);
 
-// We have 2 versions of the rotation bindings to handle different kinds of devices differently
-// "turn" handles devices that provide an absolute delta, such as a mouse.
-// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-PlayerInputComponent->BindAxis("TurnRate", this, &AMyCharacter::TurnAtRate);
-PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-PlayerInputComponent->BindAxis("LookUpRate", this, &AMyCharacter::LookUpAtRate);
+	// Bind movement events
+	PlayerInputComponent->BindAxis("MoveForward", this, &AMyCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &AMyCharacter::MoveRight);
+
+	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
+	// "turn" handles devices that provide an absolute delta, such as a mouse.
+	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
+	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("TurnRate", this, &AMyCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &AMyCharacter::LookUpAtRate);
 
 }
 
@@ -185,6 +194,56 @@ void AMyCharacter::OnFirePressed()
 	{
 		GetCurrentGun()->OnFirePressed(startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange);
 	}
+}
+
+void AMyCharacter::Dodge()
+{
+	UCharacterMovementComponent* movement = Cast<UCharacterMovementComponent>(GetMovementComponent());	
+	
+	if (CanDodge && movement && movement->IsMovingOnGround())
+	{
+		FVector desiredVelocity = FVector(InputComponent->GetAxisValue(TEXT("MoveForward")), InputComponent->GetAxisValue(TEXT("MoveRight")), 0.0f);		
+
+		// if there's input from player, launch him in the desired direction, making sure he doesn't lose too much of the current velocity
+		if (desiredVelocity.Size() > 0.0f)
+		{			
+			desiredVelocity = GetActorRotation().RotateVector(desiredVelocity.GetUnsafeNormal2D());
+
+			if (FVector::DotProduct(desiredVelocity, GetActorForwardVector()) > 0.1f)
+				return;
+
+			desiredVelocity = desiredVelocity * DodgeForce, true, true;
+		}
+		// else don't change his horizontal velocity
+		else
+		{
+			desiredVelocity = GetActorForwardVector() * -DodgeForce, true, true;
+		}
+
+		movement->GroundFriction = 0.0f;
+		LaunchCharacter(desiredVelocity, true, true);
+
+		CanDodge = false;
+		IsDodging = true;
+		GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &AMyCharacter::StopDodging, DodgeTime, false, DodgeTime);
+	}
+}
+
+void AMyCharacter::StopDodging()
+{
+	GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
+	UCharacterMovementComponent* movement = Cast<UCharacterMovementComponent>(GetMovementComponent());
+	if(movement)
+		movement->GroundFriction = OriginalFriction;
+	//GetCharacterMovement()->StopMovementImmediately();
+	IsDodging = false;	
+	GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &AMyCharacter::ResetDodge, DodgeCooldown, false, DodgeCooldown);
+}
+
+void AMyCharacter::ResetDodge()
+{
+	GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
+	CanDodge = true;
 }
 
 void AMyCharacter::OnFireReleased()
@@ -375,6 +434,20 @@ void AMyCharacter::SwitchWeapon(int id)
 	}
 }
 
+void AMyCharacter::Destroyed()
+{
+	Super::Destroyed();
+	if (GetWorldTimerManager().TimerExists(DodgeTimerHandle))
+		GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
+}
+
+void AMyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::Destroyed();
+	if(GetWorldTimerManager().TimerExists(DodgeTimerHandle))
+		GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
+}
+
 void AMyCharacter::Landed(const FHitResult & Hit)
 {
 	Super::Landed(Hit);
@@ -407,7 +480,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	if (isHit)
 	{
 		wallNormal = outHit.ImpactNormal;
-		return WN_Side;
+		return WN_Right;
 	}
 
 	//right side 2nd check
@@ -416,7 +489,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	if (isHit)
 	{
 		wallNormal = outHit.ImpactNormal;
-		return WN_Side;
+		return WN_Right;
 	}
 
 	//left side 1st check
@@ -424,7 +497,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	if (isHit)
 	{
 		wallNormal = outHit.ImpactNormal;
-		return WN_Side;
+		return WN_Left;
 	}
 
 	//left side 2nd check
@@ -433,7 +506,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	if (isHit)
 	{
 		wallNormal = outHit.ImpactNormal;
-		return WN_Side;
+		return WN_Left;
 	}
 
 	return WN_None;

@@ -63,5 +63,7 @@ void UCharacterHealthComponent::Damage(EDamageType dmgType, float value)
 	{
 		KillCharacter.Broadcast();
 	}
+
+	DamageCharacter.Broadcast(value, dmgType);
 }
 
