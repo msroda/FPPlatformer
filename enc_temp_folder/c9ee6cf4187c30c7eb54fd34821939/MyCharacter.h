@@ -95,12 +95,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
 		float MinHorizontalZSpeed = -100.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GraplingHook)
-		float GraplingRange = 500.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GraplingHook)
-		float GraplingSpeed = 2500.0f;
-
 	/** Velocity applied to the player on walljump*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
 		float WallJumpForce = 500.0f;
@@ -188,10 +182,6 @@ protected:
 
 	void SwitchWeapon(int id);
 
-	void Grip();
-
-	void Drop();
-
 	FTimerHandle DodgeTimerHandle;
 
 public:
@@ -199,9 +189,6 @@ public:
 	virtual void Destroyed() override;
 		/** For clearing timers when game stops */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-	UFUNCTION()
-		virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult);
 
 private:
 	/** Double jumps count */
@@ -223,8 +210,6 @@ private:
 
 	bool CanDodge;
 
-	bool IsGrapling;
-
 	float OriginalFriction;
 
 	/** Normal of the wall the player is close to/running on */
@@ -245,12 +230,8 @@ private:
 	/** Performed when player stops wallrunning*/
 	void StopWallrun();
 
-	void StopGrapling();
-
 	void HandleWallrunning();
 
 	/** Spawned guns */
 	TArray<ABaseGun*> Guns;
-
-	FVector GraplingMovementNormal;
 };

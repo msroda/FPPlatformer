@@ -17,32 +17,37 @@ ABaseGun::ABaseGun()
 // Called when the game starts or when spawned
 void ABaseGun::BeginPlay()
 {
-	Super::BeginPlay();
-	
+	Super::BeginPlay();	
 }
 
-void ABaseGun::OnFirePressed(FVector target)
+void ABaseGun::OnFirePressed()
 {
 
 }
 
-void ABaseGun::OnFireReleased(FVector target)
+void ABaseGun::OnFireReleased()
 {
 
 }
 
 
-void ABaseGun::OnAltFirePressed(FVector target)
+void ABaseGun::OnAltFirePressed()
 {
 
 }
 
-void ABaseGun::OnAltFireReleased(FVector target)
+void ABaseGun::OnAltFireReleased()
 {
 
 }
 
-AActor* ABaseGun::ShootProjectile(FVector target, TSubclassOf<class AActor> projectileClass, float speed)
+void ABaseGun::Aim(FVector target, float delta)
+{
+	SetActorRotation(FMath::RInterpConstantTo(GetActorRotation(), (target - GetActorLocation()).Rotation(), delta, AimingSpeed));
+	LookedTarget = target;
+}
+
+AActor* ABaseGun::ShootProjectile(TSubclassOf<class AActor> projectileClass, float speed)
 {
 	UWorld* const World = GetWorld();
 	if (World)
@@ -63,7 +68,7 @@ AActor* ABaseGun::ShootProjectile(FVector target, TSubclassOf<class AActor> proj
 				projectile->Shooter = myparent;
 			}
 
-			FVector velocity = (target - (GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset))).GetUnsafeNormal() * speed;
+			FVector velocity = (LookedTarget - (GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset))).GetUnsafeNormal() * speed;
 
 			projectile->SetVelocity(velocity);
 			return projectile;
@@ -113,6 +118,8 @@ void ABaseGun::SetActive(bool active)
 void ABaseGun::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	
 
 }
 

@@ -10,11 +10,11 @@ void AStickyBombLauncher::BeginPlay()
 	IsOnCooldown = false;
 }
 
-void AStickyBombLauncher::OnFirePressed(FVector target)
+void AStickyBombLauncher::OnFirePressed()
 {
 	if (!IsOnCooldown && Bombs.Num() < SpawnedBombsLimit)
 	{
-		AStickyBombProjectile* projectile = Cast<AStickyBombProjectile>(ShootProjectile(target, Projectile, ProjectileLaunchSpeed));
+		AStickyBombProjectile* projectile = Cast<AStickyBombProjectile>(ShootProjectile(Projectile, ProjectileLaunchSpeed));
 		IsOnCooldown = true;
 		GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &AStickyBombLauncher::EndCooldown, FireCooldown, true, FireCooldown);
 		if (projectile)
@@ -24,7 +24,7 @@ void AStickyBombLauncher::OnFirePressed(FVector target)
 	}
 }
 
-void AStickyBombLauncher::OnAltFirePressed(FVector target)
+void AStickyBombLauncher::OnAltFirePressed()
 {
 	for (auto bomb : Bombs)
 	{

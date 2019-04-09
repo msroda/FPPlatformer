@@ -5,7 +5,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "Engine/Classes/GameFramework/CharacterMovementComponent.h"
-#include "Runtime/Engine/Classes/Kismet/KismetSystemLibrary.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter()
@@ -34,7 +33,6 @@ AMyCharacter::AMyCharacter()
 	CanWallRun = true;
 	CanDodge = true;
 	IsDodging = false;
-	IsGrapling = false;
 }
 
 FVector AMyCharacter::GetLookedPoint()
@@ -80,8 +78,6 @@ void AMyCharacter::BeginPlay()
 	UCharacterMovementComponent* movement = Cast<UCharacterMovementComponent>(GetMovementComponent());
 	if (movement)
 		OriginalFriction = movement->GroundFriction;
-
-	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnOverlapBegin);
 }
 
 // Called every frame
@@ -91,19 +87,14 @@ void AMyCharacter::Tick(float DeltaTime)
 
 	if (IsWallRunning)
 	{
-		HandleWallrunning();
+		
 	}
-	else if (IsGrapling)
-	{
-		if (GetVelocity().Size() == 0.0f || FVector::DotProduct(GraplingMovementNormal, GetVelocity().GetUnsafeNormal()) < 0.95f)
-			StopGrapling();
-	}
-	else if (JumpKeyDown && CanWallRun && !IsDodging)
+	else
 	{
 		WallNeighborhood = CheckForWallsNearby(AttachedWallNormal);
 
 		//if player wants to wallrun and there's a wall nearby, that is vertical
-		if (WallNeighborhood != WN_None && AttachedWallNormal.Z >= -0.05f && AttachedWallNormal.Z < 0.15f)
+		if (JumpKeyDown && CanWallRun && WallNeighborhood != WN_None && AttachedWallNormal.Z >= -0.05f && AttachedWallNormal.Z < 0.15f)
 		{
 			CanWallRun = false;			
 			IsWallRunning = true;
@@ -134,22 +125,12 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	// set up gameplay key bindings
 	check(PlayerInputComponent);
 
-	// Bind movement events
+	// Bind jump events
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
+	// Bind jump events
 	PlayerInputComponent->BindAction("Dodge", IE_Pressed, this, &AMyCharacter::Dodge);
-	PlayerInputComponent->BindAction("Grip", IE_Pressed, this, &AMyCharacter::Grip);
-	PlayerInputComponent->BindAction("Drop", IE_Pressed, this, &AMyCharacter::Drop);
-
-	PlayerInputComponent->BindAxis("MoveForward", this, &AMyCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &AMyCharacter::MoveRight);
-
-	// Camera input
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("TurnRate", this, &AMyCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &AMyCharacter::LookUpAtRate);
 
 	// Bind fire events
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyCharacter::OnFirePressed);
@@ -161,6 +142,18 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("WeaponSlot1", IE_Pressed, this, &AMyCharacter::GetSlotOne);
 	PlayerInputComponent->BindAction("WeaponSlot2", IE_Pressed, this, &AMyCharacter::GetSlotTwo);
 	PlayerInputComponent->BindAction("WeaponSlot3", IE_Pressed, this, &AMyCharacter::GetSlotThree);
+
+	// Bind movement events
+	PlayerInputComponent->BindAxis("MoveForward", this, &AMyCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &AMyCharacter::MoveRight);
+
+	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
+	// "turn" handles devices that provide an absolute delta, such as a mouse.
+	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
+	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("TurnRate", this, &AMyCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &AMyCharacter::LookUpAtRate);
 
 }
 
@@ -359,48 +352,6 @@ void AMyCharacter::SwitchWeapon(int id)
 	}
 }
 
-void AMyCharacter::Grip()
-{
-	FHitResult outHit;
-	bool isHit;
-
-	TArray<AActor*> actorsToIgnore;
-	actorsToIgnore.Add(this);
-
-	isHit = UKismetSystemLibrary::SphereTraceSingle(this, FirstPersonCameraComponent->GetComponentLocation(), FirstPersonCameraComponent->GetComponentLocation() + FirstPersonCameraComponent->GetForwardVector() * GraplingRange, 0.5f, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::Persistent, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
-	
-	if (isHit)
-	{
-		AActor* other = outHit.Actor.Get();
-		
-		TArray<FName> tags = outHit.Actor->Tags;
-		
-		if (outHit.Actor->ActorHasTag("Slingshot") && !IsDodging)
-		{
-			if (IsWallRunning)
-				StopWallrun();
-			GraplingMovementNormal = (outHit.Actor->GetActorLocation() - GetActorLocation()).GetUnsafeNormal();
-			LaunchCharacter(GraplingMovementNormal * GraplingSpeed, true, true);
-			GetCharacterMovement()->GravityScale = 0.0f;
-			IsGrapling = true;
-		}
-	}
-}
-
-void AMyCharacter::Drop()
-{
-	if (IsWallRunning)
-	{
-		StopWallrun();
-		GetMovementComponent()->StopMovementImmediately();
-	}
-
-	if (IsGrapling)
-	{
-		StopGrapling();
-	}
-}
-
 void AMyCharacter::Destroyed()
 {
 	Super::Destroyed();
@@ -413,19 +364,12 @@ void AMyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AMyCharacter::OnOverlapBegin(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
-{
-	if (OtherActor->ActorHasTag("Slingshot") && IsGrapling)
-		StopGrapling();
-}
-
 void AMyCharacter::Landed(const FHitResult & Hit)
 {
 	Super::Landed(Hit);
 	JumpCount = 0;
 	CanWallRun = true;
 	IsWallRunning = false;
-	GetCharacterMovement()->GravityScale = 1.0f;
 }
 
 EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
@@ -494,13 +438,6 @@ void AMyCharacter::StopWallrun()
 {
 	IsWallRunning = false;
 	GetCharacterMovement()->GravityScale = 1.0f;
-}
-
-void AMyCharacter::StopGrapling()
-{
-	IsGrapling = false;
-	GetCharacterMovement()->GravityScale = 1.0f;
-	LaunchCharacter(GetVelocity().GetUnsafeNormal() * GraplingSpeed / 1.67f, true, true);
 }
 
 void AMyCharacter::HandleWallrunning()

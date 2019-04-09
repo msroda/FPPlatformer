@@ -18,7 +18,7 @@ void AShockPistol::BeginPlay()
 	IsAltOnCooldown = false;
 }
 
-void AShockPistol::OnFirePressed(FVector target)
+void AShockPistol::OnFirePressed()
 {
 	if (!IsOnCooldown)
 	{
@@ -31,7 +31,7 @@ void AShockPistol::OnFirePressed(FVector target)
 		TArray<AActor*> actorsToIgnore;
 		actorsToIgnore.Add(GetParentActor());
 
-		isHit = UKismetSystemLibrary::SphereTraceSingle(this, GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), target, 0.5f, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::Persistent, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
+		isHit = UKismetSystemLibrary::SphereTraceSingle(this, GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), LookedTarget, 0.5f, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::None, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 
 		if (isHit)
 		{
@@ -41,21 +41,22 @@ void AShockPistol::OnFirePressed(FVector target)
 				otherHP->Damage(PrimaryDamageType, PrimaryDamage);
 			}
 
-			GetWorld()->LineBatcher->DrawLine(GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), outHit.ImpactPoint, FLinearColor(FColor::Yellow), SDPG_Foreground, 0.1, 1.0f);
+			//GetWorld()->LineBatcher->DrawLine(GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), outHit.ImpactPoint, FLinearColor(FColor::Green), SDPG_World, 2.0f, 1000.0f);
 		}
 
 		else
 		{
-			GetWorld()->LineBatcher->DrawLine(GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), target, FLinearColor(FColor::Yellow), SDPG_Foreground, 1, 1.0f);
+			//GetWorld()->LineBatcher->DrawLine(GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), LookedTarget, FLinearColor(FColor::Green), SDPG_World, 1, 1.0f);
 		}
+		ShootProjectile(FireProjectile, FireProjectileLaunchSpeed);
 	}
 }
 
-void AShockPistol::OnAltFirePressed(FVector target)
+void AShockPistol::OnAltFirePressed()
 {
 	if (!IsAltOnCooldown)
 	{
-		ShootProjectile(target, AltFireProjectile, AltFireProjectileLaunchSpeed);
+		ShootProjectile(AltFireProjectile, AltFireProjectileLaunchSpeed);
 		IsAltOnCooldown = true;
 		GetWorldTimerManager().SetTimer(AltCooldownTimerHandle, this, &AShockPistol::EndAltCooldown, AltFireCooldown, true, AltFireCooldown);
 	}

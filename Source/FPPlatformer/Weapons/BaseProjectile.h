@@ -17,17 +17,20 @@ public:
 	// Sets default values for this actor's properties
 	ABaseProjectile();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		UProjectileMovementComponent* ProjectileMovement;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		UPrimitiveComponent* ProjectilePrimitive;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectile)
 		float Damage = 50.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectile)
 		EDamageType DamageType = EDamageType::DMG_Physical;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectile)
+		bool CanGoThroughWater;
 
 protected:
 	// Called when the game starts or when spawned

@@ -41,10 +41,10 @@ protected:
 	virtual void BeginPlay() override;
 
 	/** Primary fire start */
-	virtual void OnFirePressed(FVector target) override;
+	virtual void OnFirePressed() override;
 
 	/** Secondary fire start */
-	virtual void OnAltFirePressed(FVector target) override;
+	virtual void OnAltFirePressed() override;
 
 	/** Primary fire's cooldown end */
 	void EndCooldown();
