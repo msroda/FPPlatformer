@@ -20,7 +20,7 @@ void AMovingObject::BeginPlay()
 	
 	StartPosition = GetActorLocation();
 	DeltaPosition = 0.0f;
-	Direction = true;
+	Direction = false;
 	
 	if (Target)
 	{

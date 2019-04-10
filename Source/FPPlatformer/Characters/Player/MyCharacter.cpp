@@ -89,14 +89,15 @@ void AMyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (IsWallRunning)
-	{
-		HandleWallrunning();
-	}
-	else if (IsGrapling)
+	if (IsGrapling)
 	{
 		if (GetVelocity().Size() == 0.0f || FVector::DotProduct(GraplingMovementNormal, GetVelocity().GetUnsafeNormal()) < 0.95f)
 			StopGrapling();
+	}
+
+	if (IsWallRunning)
+	{
+		HandleWallrunning();
 	}
 	else if (JumpKeyDown && CanWallRun && !IsDodging)
 	{
@@ -105,6 +106,9 @@ void AMyCharacter::Tick(float DeltaTime)
 		//if player wants to wallrun and there's a wall nearby, that is vertical
 		if (WallNeighborhood != WN_None && AttachedWallNormal.Z >= -0.05f && AttachedWallNormal.Z < 0.15f)
 		{
+			
+			if (IsGrapling)
+				StopGrapling();
 			CanWallRun = false;			
 			IsWallRunning = true;
 			//wall is in front of the player - run upwards
@@ -117,7 +121,7 @@ void AMyCharacter::Tick(float DeltaTime)
 			else
 			{
 				GetCharacterMovement()->GravityScale = HorizontalParkourGravityScale;
-				LaunchCharacter(FVector::VectorPlaneProject(FirstPersonCameraComponent->GetForwardVector(), AttachedWallNormal).GetUnsafeNormal2D() * HorizontalWallRunForce + FVector(0.0f, 0.0f, VerticalWallRunForce * 0.5f) - AttachedWallNormal * WallStickForce, true, true);
+				LaunchCharacter(FVector::VectorPlaneProject(FirstPersonCameraComponent->GetForwardVector(), AttachedWallNormal).GetUnsafeNormal2D() * HorizontalWallRunForce + FVector(0.0f, 0.0f, VerticalWallRunForce * 0.33f) - AttachedWallNormal * WallStickForce, true, true);
 			}
 		}
 	}
@@ -172,28 +176,28 @@ void AMyCharacter::Dodge()
 	{
 		FVector desiredVelocity = FVector(InputComponent->GetAxisValue(TEXT("MoveForward")), InputComponent->GetAxisValue(TEXT("MoveRight")), 0.0f);		
 
-		// if there's input from player, launch him in the desired direction, making sure he doesn't lose too much of the current velocity
-		if (desiredVelocity.Size() > 0.0f)
-		{			
-			desiredVelocity = GetActorRotation().RotateVector(desiredVelocity.GetUnsafeNormal2D());
+// if there's input from player, launch him in the desired direction, making sure he doesn't lose too much of the current velocity
+if (desiredVelocity.Size() > 0.0f)
+{
+	desiredVelocity = GetActorRotation().RotateVector(desiredVelocity.GetUnsafeNormal2D());
 
-			if (FVector::DotProduct(desiredVelocity, GetActorForwardVector()) > 0.1f)
-				return;
+	if (FVector::DotProduct(desiredVelocity, GetActorForwardVector()) > 0.1f)
+		return;
 
-			desiredVelocity = desiredVelocity * DodgeForce, true, true;
-		}
-		// else don't change his horizontal velocity
-		else
-		{
-			desiredVelocity = GetActorForwardVector() * -DodgeForce, true, true;
-		}
+	desiredVelocity = desiredVelocity * DodgeForce, true, true;
+}
+// else don't change his horizontal velocity
+else
+{
+	desiredVelocity = GetActorForwardVector() * -DodgeForce, true, true;
+}
 
-		movement->GroundFriction = 0.0f;
-		LaunchCharacter(desiredVelocity, true, true);
+movement->GroundFriction = 0.0f;
+LaunchCharacter(desiredVelocity, true, true);
 
-		CanDodge = false;
-		IsDodging = true;
-		GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &AMyCharacter::StopDodging, DodgeTime, false, DodgeTime);
+CanDodge = false;
+IsDodging = true;
+GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &AMyCharacter::StopDodging, DodgeTime, false, DodgeTime);
 	}
 }
 
@@ -201,10 +205,10 @@ void AMyCharacter::StopDodging()
 {
 	GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
 	UCharacterMovementComponent* movement = Cast<UCharacterMovementComponent>(GetMovementComponent());
-	if(movement)
+	if (movement)
 		movement->GroundFriction = OriginalFriction;
 	//GetCharacterMovement()->StopMovementImmediately();
-	IsDodging = false;	
+	IsDodging = false;
 	GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &AMyCharacter::ResetDodge, DodgeCooldown, false, DodgeCooldown);
 }
 
@@ -218,6 +222,12 @@ void AMyCharacter::ResetDodge()
 {
 	GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
 	CanDodge = true;
+}
+
+void AMyCharacter::EnableWallrunning()
+{
+	GetWorldTimerManager().ClearTimer(WallrunCooldownTimerHandle);
+	CanWallRun = true;
 }
 
 void AMyCharacter::OnFireReleased()
@@ -239,18 +249,69 @@ void AMyCharacter::Jump()
 {
 	JumpKeyDown = true;
 
-	if(IsDodging)
+	if (IsDodging)
 		return;
 	if (IsWallRunning)
 	{
 		//walljump
-		FVector desiredVelocity = AttachedWallNormal * WallJumpForce;
-		desiredVelocity.Z = GetCharacterMovement()->JumpZVelocity;
-		LaunchCharacter(desiredVelocity, true, true);
+		FVector desiredVelocity = GetActorRotation().RotateVector(FVector(InputComponent->GetAxisValue(TEXT("MoveForward")), InputComponent->GetAxisValue(TEXT("MoveRight")), 0.0f));
+
+		if (desiredVelocity.Size() == 0.0f)
+			desiredVelocity = GetActorForwardVector().GetUnsafeNormal2D();
+		else
+			desiredVelocity = desiredVelocity.GetUnsafeNormal2D();
+
+		FVector outputVelocity = AttachedWallNormal * WallJumpForce;
+
+		if (WallNeighborhood == WN_Right)
+		{
+			if(FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(90.0f, FVector::UpVector)) < 0.0f)
+			{
+				outputVelocity = AttachedWallNormal * WallJumpForce;
+			}
+			else if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(-30.0f, FVector::UpVector)) < 0.0f)
+			{
+				outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(60.0f, FVector::UpVector);
+			}
+			else
+				outputVelocity = desiredVelocity * WallJumpForce;
+		}
+		else if(WallNeighborhood == WN_Left)
+		{
+			if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(-90.0f, FVector::UpVector)) < 0.0f)
+			{
+				outputVelocity = AttachedWallNormal * WallJumpForce;
+			}
+			else if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(30.0f, FVector::UpVector)) < 0.0f)
+			{
+				outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(-60.0f, FVector::UpVector);
+			}
+			else
+				outputVelocity = desiredVelocity * WallJumpForce;
+		}
+		else
+		{
+			if (FVector::DotProduct(desiredVelocity, AttachedWallNormal) < 0.0f)
+			{
+				outputVelocity = AttachedWallNormal * WallJumpForce;
+			}
+			else
+			{
+				if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(45.0f, FVector::UpVector)) < 0.0f)
+					outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(-45.0f, FVector::UpVector);
+
+				else if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(-45.0f, FVector::UpVector)) < 0.0f)
+					outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(45.0f, FVector::UpVector);
+				else
+					outputVelocity = desiredVelocity * WallJumpForce;
+			}
+		}
+
+		outputVelocity.Z = GetCharacterMovement()->JumpZVelocity;
+		LaunchCharacter(outputVelocity, true, true);
 		StopWallrun();
 		JumpCount = 1;
-		CanWallRun = true;
-		JumpKeyDown = false;
+		GetWorldTimerManager().SetTimer(WallrunCooldownTimerHandle, this, &AMyCharacter::EnableWallrunning, WallrunCooldown, false, WallrunCooldown);
 	}
 	else
 	{
@@ -383,6 +444,7 @@ void AMyCharacter::Grip()
 			LaunchCharacter(GraplingMovementNormal * GraplingSpeed, true, true);
 			GetCharacterMovement()->GravityScale = 0.0f;
 			IsGrapling = true;
+			CanWallRun = true;
 		}
 	}
 }
@@ -442,7 +504,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 
 	if (isHit)
 	{
-		wallNormal = outHit.ImpactNormal;
+		wallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
 		return WN_Front;
 	}
 
@@ -451,7 +513,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
-		wallNormal = outHit.ImpactNormal;
+		wallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
 		return WN_Right;
 	}
 
@@ -460,7 +522,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
-		wallNormal = outHit.ImpactNormal;
+		wallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
 		return WN_Right;
 	}
 
@@ -469,7 +531,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
-		wallNormal = outHit.ImpactNormal;
+		wallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
 		return WN_Left;
 	}
 
@@ -478,7 +540,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
 	if (isHit)
 	{
-		wallNormal = outHit.ImpactNormal;
+		wallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
 		return WN_Left;
 	}
 
@@ -500,7 +562,7 @@ void AMyCharacter::StopGrapling()
 {
 	IsGrapling = false;
 	GetCharacterMovement()->GravityScale = 1.0f;
-	LaunchCharacter(GetVelocity().GetUnsafeNormal() * GraplingSpeed / 1.67f, true, true);
+	LaunchCharacter(GetVelocity().GetUnsafeNormal() * GraplingSpeed, true, true);
 }
 
 void AMyCharacter::HandleWallrunning()
@@ -533,7 +595,7 @@ void AMyCharacter::HandleWallrunning()
 
 		if (isHit)
 		{
-			AttachedWallNormal = outHit.ImpactNormal;
+			AttachedWallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
 		}
 		//2nd check
 		else
@@ -543,11 +605,13 @@ void AMyCharacter::HandleWallrunning()
 
 			if (isHit)
 			{
-				AttachedWallNormal = outHit.ImpactNormal;
+				AttachedWallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
 			}
 			else
 			{
-				StopWallrun();
+				if (WallNeighborhood == WN_Front)
+					LaunchCharacter(FVector(0.0f, 0.0f, VerticalWallRunForce) - AttachedWallNormal * WallStickForce * 2, true, true);
+				StopWallrun();		
 			}
 		}
 	}

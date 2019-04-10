@@ -79,6 +79,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
 		float VerticalWallRunForce = 300.0f;
 
+
 	/** Force applied to player when beginning horizontal wallrun*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
 		float HorizontalWallRunForce = 350.0f;
@@ -94,6 +95,10 @@ public:
 	/** Minimum Z velocity for the player to keep wallrunning horizontally*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
 		float MinHorizontalZSpeed = -100.0f;
+
+	// Wallrun cooldown to prevent running the wall we just jumped of
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Parkour)
+		float WallrunCooldown = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GraplingHook)
 		float GraplingRange = 500.0f;
@@ -153,6 +158,9 @@ protected:
 	// Reset dodge
 	void ResetDodge();
 
+	// Enable wallrunning
+	void EnableWallrunning();
+
 	/** Primary gun released action */
 	void OnFireReleased();
 
@@ -193,6 +201,8 @@ protected:
 	void Drop();
 
 	FTimerHandle DodgeTimerHandle;
+
+	FTimerHandle WallrunCooldownTimerHandle;
 
 public:
 	/** For clearing timers when bullet is destroyed */
