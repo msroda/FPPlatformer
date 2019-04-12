@@ -138,7 +138,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	// Health Component
-	UCharacterHealthComponent* CharacterHealth;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Health, meta = (AllowPrivateAccess = "true"))
+		UCharacterHealthComponent* CharacterHealth;
 
 	FVector GetLookedPoint();
 
@@ -213,6 +214,10 @@ public:
 	UFUNCTION()
 		virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult);
 
+	UFUNCTION()
+		void Die();
+
+
 private:
 	/** Double jumps count */
 	int	JumpCount;
@@ -263,4 +268,6 @@ private:
 	TArray<ABaseGun*> Guns;
 
 	FVector GraplingMovementNormal;
+
+	FVector LastCheckpointLocation;
 };

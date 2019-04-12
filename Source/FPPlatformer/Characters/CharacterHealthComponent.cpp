@@ -18,9 +18,8 @@ void UCharacterHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-
+	RegenTimer = 0.0f;
 	CurrentHealth = MaxHealth;
-	// ...
 	
 }
 
@@ -30,7 +29,15 @@ void UCharacterHealthComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+	if (RegenTimer < RegenerationCooldown)
+		RegenTimer += DeltaTime;
+	else
+	{
+		if (CurrentHealth < MaxHealth)
+		{
+			CurrentHealth = FMath::FInterpConstantTo(CurrentHealth, MaxHealth, DeltaTime, RegenerationRate);
+		}
+	}
 }
 
 void UCharacterHealthComponent::Damage(EDamageType dmgType, float value)
@@ -64,6 +71,7 @@ void UCharacterHealthComponent::Damage(EDamageType dmgType, float value)
 		KillCharacter.Broadcast();
 	}
 
+	RegenTimer = 0.0f;
 	DamageCharacter.Broadcast(value, dmgType);
 }
 

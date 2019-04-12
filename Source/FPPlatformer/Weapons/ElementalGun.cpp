@@ -79,3 +79,11 @@ void AElementalGun::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 	GetWorldTimerManager().ClearTimer(CooldownTimerHandle);
 }
+
+void AElementalGun::SetActive(bool active)
+{
+	IsFiring = false;
+	IsAltFiring = false;
+	
+	Super::SetActive(active);	
+}

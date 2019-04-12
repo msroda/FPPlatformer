@@ -29,35 +29,39 @@ public:
 	UCharacterHealthComponent();
 
 	/** Character's max HP */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Health)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Health)
 		float MaxHealth = 100.0f;
 
+	/** Character's current HP */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Health)
+		float CurrentHealth;
+
 	/** Character's HP regen rate */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Health)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Health)
 		float RegenerationRate = 0.0f;
 
 	/** Character's HP regen cooldown */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Health)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Health)
 		float RegenerationCooldown = 10.0f;
 
 	/** Character's physical dmg resistance */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Resistance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Resistance)
 		float PhysicalResistance = 0.0f;
 
 	/** Character's explosive dmg resistance */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Resistance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Resistance)
 		float ExplosiveResistance = 0.0f;
 
 	/** Character's fire dmg resistance */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Resistance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Resistance)
 		float FireResistance = 0.0f;
 
 	/** Character's ice dmg resistance */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Resistance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Resistance)
 		float IceResistance = 0.0f;
 
 	/** Character's energy dmg resistance */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Resistance)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Resistance)
 		float EnergyResistance = 0.0f;
 
 	UPROPERTY()
@@ -79,6 +83,5 @@ public:
 
 private:
 
-	/** Character's current HP */
-	float CurrentHealth;
+	float RegenTimer;
 };

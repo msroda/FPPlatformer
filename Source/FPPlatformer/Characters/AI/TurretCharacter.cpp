@@ -109,7 +109,7 @@ bool ATurretCharacter::ShootPlayer()
 
 				float angleBetween = FMath::Acos(FVector::DotProduct(targetOffset.GetUnsafeNormal() * -1.0f, pawnVelocity.GetUnsafeNormal()));
 
-				if (!PredictTargetPosition && pawnVelocity.Size() != 0.0f && !(pawnVelocity.Size() > ProjectileVelocity && FMath::Sin(angleBetween) / ProjectileVelocity > FMath::Cos(angleBetween) / pawnVelocity.Size()))
+				if (PredictTargetPosition && pawnVelocity.Size() != 0.0f && !(pawnVelocity.Size() > ProjectileVelocity && FMath::Sin(angleBetween) / ProjectileVelocity > FMath::Cos(angleBetween) / pawnVelocity.Size()))
 				{
 					float shootAngle = FMath::Asin(FMath::Sin(angleBetween) * pawnVelocity.Size() / ProjectileVelocity);
 					outputVelocity = TargetPawn->GetActorLocation() + pawnVelocity * targetOffset.Size() / FMath::Sin(UKismetMathLibrary::GetPI() - angleBetween - shootAngle) * FMath::Sin(shootAngle) / pawnVelocity.Size();

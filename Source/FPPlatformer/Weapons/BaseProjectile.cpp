@@ -49,7 +49,7 @@ void ABaseProjectile::SetVelocity(FVector newVelocity)
 
 void ABaseProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	UCharacterHealthComponent* HPComp = OtherActor->FindComponentByClass<UCharacterHealthComponent>();
+        	UCharacterHealthComponent* HPComp = OtherActor->FindComponentByClass<UCharacterHealthComponent>();
 
 	if (HPComp)
 	{

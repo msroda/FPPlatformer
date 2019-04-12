@@ -55,7 +55,7 @@ AActor* ABaseGun::ShootProjectile(TSubclassOf<class AActor> projectileClass, flo
 		FActorSpawnParameters SpawnParams;
 
 		// spawn the projectile at the muzzle
-		ABaseProjectile* projectile = World->SpawnActor<ABaseProjectile>(projectileClass, GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), GetActorRotation(), SpawnParams);
+		ABaseProjectile* projectile = World->SpawnActor<ABaseProjectile>(projectileClass, GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), (LookedTarget - GetActorLocation()).Rotation(), SpawnParams);
 		if (projectile && projectile->ProjectileMovement)
 		{
 			UPrimitiveComponent* bulletPrimitive = projectile->FindComponentByClass<UPrimitiveComponent>();
@@ -111,7 +111,9 @@ bool ABaseGun::ShootHitscan(FVector target, FHitResult & outHit)
 
 void ABaseGun::SetActive(bool active)
 {
-	IsActive = active;
+	IsActive = active;	
+	SetActorHiddenInGame(!active);
+	SetActorTickEnabled(active);
 }
 
 // Called every frame

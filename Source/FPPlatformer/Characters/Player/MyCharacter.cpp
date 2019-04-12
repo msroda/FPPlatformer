@@ -25,6 +25,13 @@ AMyCharacter::AMyCharacter()
 	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCameraComponent->RelativeLocation = FVector(-39.56f, 1.75f, 64.f); // Position the camera
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
+
+	CharacterHealth = CreateDefaultSubobject<UCharacterHealthComponent>(TEXT("CharacterHealth"));
+	CharacterHealth->KillCharacter.AddDynamic(this, &AMyCharacter::Die);
+
+	CharacterHealth->MaxHealth = 250.0f;
+	CharacterHealth->RegenerationRate = 50.0f;
+	CharacterHealth->RegenerationCooldown = 5.0f;
 	
 	LineTraceStart = FVector(0.0f, 0.0f, -50.0f);
 
@@ -40,18 +47,16 @@ AMyCharacter::AMyCharacter()
 FVector AMyCharacter::GetLookedPoint()
 {
 	FHitResult outHit;
-	bool isHit = false;
+	bool isHit;
 
-	FVector startLocation = FirstPersonCameraComponent->GetComponentLocation();
+	TArray<AActor*> actorsToIgnore;
+	actorsToIgnore.Add(this);
 
-	FCollisionQueryParams collisionParams;
-
-	// front
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange, ECC_Visibility, collisionParams);
+	isHit = UKismetSystemLibrary::LineTraceSingle(this, FirstPersonCameraComponent->GetComponentLocation(), FirstPersonCameraComponent->GetComponentLocation() + FirstPersonCameraComponent->GetForwardVector() * ShootRange, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::ForOneFrame, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 
 	if (isHit)
 		return outHit.ImpactPoint;
-	return startLocation + FirstPersonCameraComponent->GetForwardVector() * ShootRange;
+	return FirstPersonCameraComponent->GetComponentLocation() + FirstPersonCameraComponent->GetForwardVector() * ShootRange;
 }
 
 // Called when the game starts or when spawned
@@ -89,6 +94,7 @@ void AMyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+
 	if (IsGrapling)
 	{
 		if (GetVelocity().Size() == 0.0f || FVector::DotProduct(GraplingMovementNormal, GetVelocity().GetUnsafeNormal()) < 0.95f)
@@ -121,7 +127,7 @@ void AMyCharacter::Tick(float DeltaTime)
 			else
 			{
 				GetCharacterMovement()->GravityScale = HorizontalParkourGravityScale;
-				LaunchCharacter(FVector::VectorPlaneProject(FirstPersonCameraComponent->GetForwardVector(), AttachedWallNormal).GetUnsafeNormal2D() * HorizontalWallRunForce + FVector(0.0f, 0.0f, VerticalWallRunForce * 0.33f) - AttachedWallNormal * WallStickForce, true, true);
+				LaunchCharacter(FVector::VectorPlaneProject(FirstPersonCameraComponent->GetForwardVector(), AttachedWallNormal).GetUnsafeNormal2D() * HorizontalWallRunForce + FVector(0.0f, 0.0f, VerticalWallRunForce * 0.25f) - AttachedWallNormal * WallStickForce, true, true);
 			}
 		}
 	}
@@ -478,7 +484,20 @@ void AMyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AMyCharacter::OnOverlapBegin(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	if (OtherActor->ActorHasTag("Slingshot") && IsGrapling)
+	{
 		StopGrapling();
+		LaunchCharacter(OtherActor->GetActorForwardVector() * GraplingSpeed, true, true);
+	}
+
+	if (OtherActor->ActorHasTag("Checkpoint"))
+        LastCheckpointLocation = OtherActor->GetActorLocation();
+
+}
+
+void AMyCharacter::Die()
+{
+	GetMovementComponent()->StopMovementImmediately();
+	TeleportTo(LastCheckpointLocation, GetActorRotation());
 }
 
 void AMyCharacter::Landed(const FHitResult & Hit)
@@ -495,12 +514,15 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	FHitResult outHit;
 	bool isHit = false;
 
-	FVector startLocation = GetActorLocation() + LineTraceStart;
+	TArray<AActor*> actorsToIgnore;
+	actorsToIgnore.Add(this);
+
+	FVector startLocation = GetActorLocation();
 
 	FCollisionQueryParams collisionParams;	
 
 	// front
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorForwardVector() * LineTraceRange, ECC_Visibility, collisionParams);
+	isHit = UKismetSystemLibrary::BoxTraceSingle(this, startLocation, startLocation + GetActorForwardVector() * LineTraceRange, FVector(5.0f, 10.0f, 5.0f), GetActorRotation(), UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::ForOneFrame, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 
 	if (isHit)
 	{
@@ -508,36 +530,16 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 		return WN_Front;
 	}
 
-	//right side 1st check
-	startLocation += GetActorForwardVector() * LineTraceShift;
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
+	//right side
+	isHit = UKismetSystemLibrary::BoxTraceSingle(this, startLocation, startLocation + GetActorRightVector() * LineTraceRange, FVector(20.0f, 5.0f, 5.0f), GetActorRotation(), UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::ForOneFrame, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 	if (isHit)
 	{
 		wallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
 		return WN_Right;
 	}
 
-	//right side 2nd check
-	startLocation -= GetActorForwardVector() * LineTraceShift * 2;
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation + GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
-	if (isHit)
-	{
-		wallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
-		return WN_Right;
-	}
-
-	//left side 1st check
-	startLocation += GetActorForwardVector() * LineTraceShift * 2;
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
-	if (isHit)
-	{
-		wallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
-		return WN_Left;
-	}
-
-	//left side 2nd check
-	startLocation -= GetActorForwardVector() * LineTraceShift * 2;
-	isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - GetActorRightVector() * LineTraceRange, ECC_Visibility, collisionParams);
+	//left side
+	isHit = UKismetSystemLibrary::BoxTraceSingle(this, startLocation, startLocation - GetActorRightVector() * LineTraceRange, FVector(20.0f, 5.0f, 5.0f), GetActorRotation(), UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::ForOneFrame, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 	if (isHit)
 	{
 		wallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
@@ -575,44 +577,24 @@ void AMyCharacter::HandleWallrunning()
 	//check if there's still a wall to run on
 	else
 	{
-		float shift;
-		if (WallNeighborhood == WN_Left)
-			shift = -LineTraceShift;
-		else
-			shift = LineTraceShift;
-		
-		const FRotator rot(0.0f, 0.0f, 90.0f);
-		FVector startPosShift = rot.RotateVector(AttachedWallNormal) * LineTraceShift;
-
 		FHitResult outHit;
 		bool isHit = false;		
 
-		FVector startLocation = GetActorLocation() + LineTraceStart + startPosShift;
-		FCollisionQueryParams collisionParams;
+		TArray<AActor*> actorsToIgnore;
+		actorsToIgnore.Add(this);
 
-		//1st check
-		isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - AttachedWallNormal * LineTraceRange, ECC_Visibility, collisionParams);
+		FVector startLocation = GetActorLocation();
 
+		isHit = UKismetSystemLibrary::BoxTraceSingle(this, startLocation, startLocation - AttachedWallNormal * LineTraceRange, FVector(20.0f, 5.0f, 5.0f), GetActorRotation(), UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::ForOneFrame, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 		if (isHit)
 		{
 			AttachedWallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
 		}
-		//2nd check
 		else
 		{
-			startLocation -= 2 * startPosShift;
-			isHit = GetWorld()->LineTraceSingleByChannel(outHit, startLocation, startLocation - AttachedWallNormal * LineTraceRange, ECC_Visibility, collisionParams);
-
-			if (isHit)
-			{
-				AttachedWallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
-			}
-			else
-			{
-				if (WallNeighborhood == WN_Front)
-					LaunchCharacter(FVector(0.0f, 0.0f, VerticalWallRunForce) - AttachedWallNormal * WallStickForce * 2, true, true);
-				StopWallrun();		
-			}
-		}
+			if (WallNeighborhood == WN_Front)
+				LaunchCharacter(FVector(0.0f, 0.0f, VerticalWallRunForce) - AttachedWallNormal * WallStickForce * 2, true, true);
+         				StopWallrun();		
+		}		
 	}
 }

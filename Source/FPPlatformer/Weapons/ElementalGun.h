@@ -77,6 +77,8 @@ public:
 	/** For clearing timers when game stops */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	virtual void SetActive(bool active) override;
+
 private:
 	//Can alt fire
 	bool IsOnCooldown;
