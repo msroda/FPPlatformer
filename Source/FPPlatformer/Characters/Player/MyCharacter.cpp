@@ -87,6 +87,9 @@ void AMyCharacter::BeginPlay()
 		OriginalFriction = movement->GroundFriction;
 
 	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnOverlapBegin);
+
+	if (RunningCameraShake)
+		RunningShake = GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(RunningCameraShake, 1.0f);
 }
 
 // Called every frame
@@ -136,6 +139,11 @@ void AMyCharacter::Tick(float DeltaTime)
 	{
 		gun->Aim(GetLookedPoint(), DeltaTime);
 	}
+
+	if (IsWallRunning || GetMovementComponent()->IsMovingOnGround())
+		RunningShake->ShakeScale = FMath::Pow(FMath::Min(GetVelocity().Size2D()/ GetMovementComponent()->GetMaxSpeed(), 1.0f), 2.0f);
+	else
+		RunningShake->ShakeScale = 0.0f;
 }
 
 // Called to bind functionality to input
@@ -182,28 +190,28 @@ void AMyCharacter::Dodge()
 	{
 		FVector desiredVelocity = FVector(InputComponent->GetAxisValue(TEXT("MoveForward")), InputComponent->GetAxisValue(TEXT("MoveRight")), 0.0f);		
 
-// if there's input from player, launch him in the desired direction, making sure he doesn't lose too much of the current velocity
-if (desiredVelocity.Size() > 0.0f)
-{
-	desiredVelocity = GetActorRotation().RotateVector(desiredVelocity.GetUnsafeNormal2D());
+	// if there's input from player, launch him in the desired direction, making sure he doesn't lose too much of the current velocity
+	if (desiredVelocity.Size() > 0.0f)
+	{
+		desiredVelocity = GetActorRotation().RotateVector(desiredVelocity.GetUnsafeNormal2D());
 
-	if (FVector::DotProduct(desiredVelocity, GetActorForwardVector()) > 0.1f)
-		return;
+		if (FVector::DotProduct(desiredVelocity, GetActorForwardVector()) > 0.1f)
+			return;
 
-	desiredVelocity = desiredVelocity * DodgeForce, true, true;
-}
-// else don't change his horizontal velocity
-else
-{
-	desiredVelocity = GetActorForwardVector() * -DodgeForce, true, true;
-}
+		desiredVelocity = desiredVelocity * DodgeForce, true, true;
+	}
+	// else don't change his horizontal velocity
+	else
+	{
+		desiredVelocity = GetActorForwardVector() * -DodgeForce, true, true;
+	}
 
-movement->GroundFriction = 0.0f;
-LaunchCharacter(desiredVelocity, true, true);
+	movement->GroundFriction = 0.0f;
+	LaunchCharacter(desiredVelocity, true, true);
 
-CanDodge = false;
-IsDodging = true;
-GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &AMyCharacter::StopDodging, DodgeTime, false, DodgeTime);
+	CanDodge = false;
+	IsDodging = true;
+	GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &AMyCharacter::StopDodging, DodgeTime, false, DodgeTime);
 	}
 }
 
@@ -318,6 +326,8 @@ void AMyCharacter::Jump()
 		StopWallrun();
 		JumpCount = 1;
 		GetWorldTimerManager().SetTimer(WallrunCooldownTimerHandle, this, &AMyCharacter::EnableWallrunning, WallrunCooldown, false, WallrunCooldown);
+		if (JumpCameraShake)
+			GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(JumpCameraShake, 1.0f);
 	}
 	else
 	{
@@ -326,6 +336,8 @@ void AMyCharacter::Jump()
 		{
 			Super::Jump();
 			JumpCount++;
+			if (JumpCameraShake)
+				GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(JumpCameraShake, 1.0f);
 		}
 		// second jump (air launch)
 		else if (JumpCount < JumpLimit)
@@ -451,6 +463,8 @@ void AMyCharacter::Grip()
 			GetCharacterMovement()->GravityScale = 0.0f;
 			IsGrapling = true;
 			CanWallRun = true;
+			if (JumpCameraShake)
+				GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(JumpCameraShake, 1.0f);
 		}
 	}
 }
@@ -507,6 +521,9 @@ void AMyCharacter::Landed(const FHitResult & Hit)
 	CanWallRun = true;
 	IsWallRunning = false;
 	GetCharacterMovement()->GravityScale = 1.0f;
+
+	if (LandCameraShake)
+		GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(LandCameraShake, -GetVelocity().Z / 300);
 }
 
 EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)

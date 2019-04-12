@@ -49,6 +49,8 @@ void AShockPistol::OnFirePressed()
 			//GetWorld()->LineBatcher->DrawLine(GetActorLocation() + GetActorRotation().RotateVector(MuzzleOffset), LookedTarget, FLinearColor(FColor::Green), SDPG_World, 1, 1.0f);
 		}
 		ShootProjectile(FireProjectile, FireProjectileLaunchSpeed);
+		if(PrimaryFireShake)
+			GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(PrimaryFireShake, 1.0f);
 	}
 }
 
@@ -59,6 +61,8 @@ void AShockPistol::OnAltFirePressed()
 		ShootProjectile(AltFireProjectile, AltFireProjectileLaunchSpeed);
 		IsAltOnCooldown = true;
 		GetWorldTimerManager().SetTimer(AltCooldownTimerHandle, this, &AShockPistol::EndAltCooldown, AltFireCooldown, true, AltFireCooldown);
+		if(SecondaryFireShake)
+			GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(SecondaryFireShake, 1.0f);
 	}
 }
 

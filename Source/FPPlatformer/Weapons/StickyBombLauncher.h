@@ -31,6 +31,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		int SpawnedBombsLimit = 5;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
+		TSubclassOf<UCameraShake> CameraShake;
+
 protected:
 
 	FTimerHandle CooldownTimerHandle;

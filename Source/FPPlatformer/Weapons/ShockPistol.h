@@ -49,6 +49,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float PrimaryDamage = 50;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
+		TSubclassOf<UCameraShake> PrimaryFireShake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
+		TSubclassOf<UCameraShake> SecondaryFireShake;
 
 protected:
 	

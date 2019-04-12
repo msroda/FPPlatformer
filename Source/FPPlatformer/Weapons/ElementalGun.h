@@ -45,6 +45,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float AltFireCooldown = 0.2f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
+		TSubclassOf<UCameraShake> CameraShake;
+
 	virtual void Tick(float DeltaTime) override;
 
 protected:

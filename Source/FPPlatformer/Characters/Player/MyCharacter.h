@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Characters/CharacterHealthComponent.h"
+#include "Engine/Classes/Camera/CameraShake.h"
+//#include "Engine/Classes/GameFramework/PlayerController.h"
 #include "Weapons/BaseGun.h"
 #include "Engine/Public/TimerManager.h"
 #include "MyCharacter.generated.h"
@@ -34,6 +36,15 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		float BaseLookUpRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
+		TSubclassOf<UCameraShake> JumpCameraShake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
+		TSubclassOf<UCameraShake> LandCameraShake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
+		TSubclassOf<UCameraShake> RunningCameraShake;
 
 	/** First person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -270,4 +281,6 @@ private:
 	FVector GraplingMovementNormal;
 
 	FVector LastCheckpointLocation;
+
+	UCameraShake* RunningShake;
 };

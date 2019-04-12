@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Characters/CharacterHealthComponent.h"
+#include "Runtime/Engine/Public/TimerManager.h"
 #include "Runtime/Engine/Classes/Components/SphereComponent.h"
 #include "Explosion.generated.h"
 
@@ -30,22 +31,31 @@ public:
 	// Called every frame
 	virtual void OnConstruction(const FTransform & Transform) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		UPrimitiveComponent* SphereComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		float DurationTime = 0.3f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		float Radius = 200.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		float Damage = 70.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gun)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		EDamageType DamageType = EDamageType::DMG_Explosive;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
+		int Ticks = 4;
+
+	UFUNCTION()
+		void Trace();
+
 private:
+	TArray<AActor*> ActorsHit;
+
+	FTimerHandle SphereTraceTimer;
 
 	float ExplosionTimer;
 };

@@ -18,12 +18,16 @@ void AElementalGun::Tick(float DeltaTime)
 			ShootProjectile(FireProjectile, FireProjectileLaunchSpeed);
 			IsOnCooldown = true;
 			GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &AElementalGun::EndCooldown, FireCooldown, false, FireCooldown);
+			if (CameraShake)
+				GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(CameraShake, 1.0f);
 		}
 		else if (IsAltFiring && !IsOnCooldown)
 		{
 			ShootProjectile(AltFireProjectile, AltFireProjectileLaunchSpeed);
 			IsOnCooldown = true;
 			GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &AElementalGun::EndCooldown, AltFireCooldown, false, AltFireCooldown);
+			if (CameraShake)
+				GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(CameraShake, 1.0f);
 		}
 
 	}

@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Engine/Classes/Camera/CameraShake.h"
+#include "Engine/Classes/GameFramework/PlayerController.h"
 #include "BaseGun.generated.h"
 
 UCLASS()

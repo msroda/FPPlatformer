@@ -20,6 +20,8 @@ AExplosion::AExplosion()
 void AExplosion::BeginPlay()
 {
 	Super::BeginPlay();
+
+	GetWorldTimerManager().SetTimer(SphereTraceTimer, this, &AExplosion::Trace, DurationTime / Ticks, true, DurationTime / Ticks);
 }
 
 // Called every frame
@@ -36,31 +38,7 @@ void AExplosion::Tick(float DeltaTime)
 		}
 		else
 		{
-			TArray<FHitResult> outHits;
-			bool isHit = false;
-
-			TArray<AActor*> actorsToIgnore;
-
-			isHit = UKismetSystemLibrary::SphereTraceMulti(this, SphereComponent->GetComponentLocation(), SphereComponent->GetComponentLocation(), Radius * 50, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::Persistent, outHits, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
-
-			if (isHit)
-			{
-				TArray<AActor*> hitActors;
-				for (auto outHit : outHits)
-				{
-					AActor* tempActor = outHit.Actor.Get();
-					if (!hitActors.Contains(tempActor))
-					{
-						hitActors.Add(tempActor);
-
-						UCharacterHealthComponent* otherHP = Cast<UCharacterHealthComponent>(tempActor->GetComponentByClass(UCharacterHealthComponent::StaticClass()));
-						if (otherHP)
-						{
-							otherHP->Damage(DamageType, Damage);
-						}
-					}
-				}
-			}
+			
 
 			Destroy();
 		}
@@ -77,3 +55,36 @@ void AExplosion::OnConstruction(const FTransform & Transform)
 	}
 }
 
+void AExplosion::Trace()
+{
+	TArray<FHitResult> outHits;
+	bool isHit = false;
+
+	TArray<AActor*> actorsToIgnore;
+
+	isHit = UKismetSystemLibrary::SphereTraceMulti(this, SphereComponent->GetComponentLocation(), SphereComponent->GetComponentLocation(), Radius * 50, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::None, outHits, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
+
+	if (isHit)
+	{
+		for (auto outHit : outHits)
+		{
+			AActor* tempActor = outHit.Actor.Get();
+			if (!ActorsHit.Contains(tempActor))
+			{
+				FHitResult outSingleHit;
+				bool isSingleHit = UKismetSystemLibrary::LineTraceSingle(this, SphereComponent->GetComponentLocation(), outHit.ImpactPoint, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::Persistent, outSingleHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
+
+				if (!isSingleHit || outSingleHit.Actor.Get() == tempActor)
+				{
+					ActorsHit.Add(tempActor);
+
+					UCharacterHealthComponent* otherHP = Cast<UCharacterHealthComponent>(tempActor->GetComponentByClass(UCharacterHealthComponent::StaticClass()));
+					if (otherHP)
+					{
+						otherHP->Damage(DamageType, Damage);
+					}
+				}				
+			}
+		}
+	}
+}

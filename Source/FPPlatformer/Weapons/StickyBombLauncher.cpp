@@ -21,6 +21,8 @@ void AStickyBombLauncher::OnFirePressed()
 		{
 			Bombs.Add(projectile);
 		}
+		if (CameraShake)
+			GetWorld()->GetFirstPlayerController()->PlayerCameraManager->PlayCameraShake(CameraShake, 1.0f);
 	}
 }
 
