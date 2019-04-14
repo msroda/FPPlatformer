@@ -26,6 +26,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		UCharacterHealthComponent* CharacterHealth;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Damage)
+		UParticleSystem* FireParticleTemplate;
+
+	UPROPERTY()
+		UParticleSystemComponent* FireParticleSystem;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Senses)
 		UPawnSensingComponent* PawnSensingComponent;
 
@@ -34,6 +40,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Senses)
 		float AlertTime = 5.0f;
+
+	UFUNCTION()
+		void ReceiveDamage(float damage, EDamageType damageType);
+
+	UFUNCTION()
+		void OnDamageEventEnded(EDamageType damageType);
 
 	UFUNCTION()
 		void OnSeePlayer(APawn* Pawn);
@@ -69,7 +81,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	/** Handler for timer to set off an explosion */
+	// Handler for timer to set off an explosion
 	FTimerHandle ShootCooldownTimer;
 
 public:	
@@ -79,10 +91,10 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	/** For clearing timers when bullet is destroyed */
+	// For clearing timers when bullet is destroyed
 	virtual void Destroyed() override;
 
-	/** For clearing timers when game stops */
+	// For clearing timers when game stops
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	bool ShootPlayer();

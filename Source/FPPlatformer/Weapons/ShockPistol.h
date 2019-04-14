@@ -25,27 +25,27 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float FireProjectileLaunchSpeed = 10000;
 
-	/** Projectile to spawn on alt fire */
+	// Projectile to spawn on alt fire
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		TSubclassOf<ABaseProjectile> AltFireProjectile;
 
-	/** Velocity applied to projectile on spawn */
+	// Velocity applied to projectile on spawn
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float AltFireProjectileLaunchSpeed = 600;
 
-	/** Primary fire cooldown */
+	// Primary fire cooldown
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float FireCooldown = 0.3f;
 	
-	/** Secondary fire cooldown */
+	// Secondary fire cooldown
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float AltFireCooldown = 1.0f;
 
-	/** Primary fire damage type*/
+	// Primary fire damage type
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		EDamageType PrimaryDamageType = EDamageType::DMG_Energy;
 
-	/** Primary fire damage*/
+	// Primary fire damage
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float PrimaryDamage = 50;
 
@@ -57,38 +57,38 @@ public:
 
 protected:
 	
-	/** Handler for primary fire cooldown */
+	// Handler for primary fire cooldown
 	FTimerHandle CooldownTimerHandle;
 	
-	/** Handler for alt fire cooldown */
+	// Handler for alt fire cooldown
 	FTimerHandle AltCooldownTimerHandle;
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	/** Primary fire start */
+	// Primary fire start
 	virtual void OnFirePressed() override;
 
-	/** Secondary fire start */
+	// Secondary fire start
 	virtual void OnAltFirePressed() override;
 
-	/** Primary fire's cooldown end */
+	// Primary fire's cooldown end
 	void EndCooldown();
 	
-	/** Secondary fire's cooldown end */
+	// Secondary fire's cooldown end
 	void EndAltCooldown();
 
 public:
-	/** For clearing timers when bullet is destroyed */
+	// For clearing timers when bullet is destroyed
 	virtual void Destroyed() override;
 
-	/** For clearing timers when game stops */
+	// For clearing timers when game stops
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-	/** Can alt fire */
+	// Can alt fire
 	bool IsOnCooldown;
 
-	/** Can alt fire */
+	// Can alt fire
 	bool IsAltOnCooldown;
 };

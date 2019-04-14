@@ -25,10 +25,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = World)
 		bool IsActive;
 
-	UCharacterHealthComponent* HealthComponent;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = World)
 		AFreezableWater* PairActor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = HealthAndDamage)
+		UCharacterHealthComponent* HealthComponent;
 
 	UFUNCTION()
 		void ReceiveDamage(float damage, EDamageType damageType);

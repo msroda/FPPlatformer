@@ -24,7 +24,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float ProjectileLaunchSpeed = 600;
 
-	/** Velocity applied to projectile on spawn */
+	// Velocity applied to projectile on spawn
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectiles)
 		float FireCooldown = 0.5f;
 
@@ -43,21 +43,21 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	/** Primary fire start */
+	// Primary fire start
 	virtual void OnFirePressed() override;
 
-	/** Secondary fire start */
+	// Secondary fire start
 	virtual void OnAltFirePressed() override;
 
-	/** Primary fire's cooldown end */
+	// Primary fire's cooldown end
 	void EndCooldown();
 
 public:
 
-	/** For clearing timers when bullet is destroyed */
+	// For clearing timers when bullet is destroyed
 	virtual void Destroyed() override;
 
-	/** For clearing timers when game stops */
+	// For clearing timers when game stops
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:

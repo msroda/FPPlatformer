@@ -62,7 +62,7 @@ void AExplosion::Trace()
 
 	TArray<AActor*> actorsToIgnore;
 
-	isHit = UKismetSystemLibrary::SphereTraceMulti(this, SphereComponent->GetComponentLocation(), SphereComponent->GetComponentLocation(), Radius * 50, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::None, outHits, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
+	isHit = UKismetSystemLibrary::SphereTraceMulti(this, SphereComponent->GetComponentLocation(), SphereComponent->GetComponentLocation(), Radius * 50, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::Persistent, outHits, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 
 	if (isHit)
 	{
@@ -81,10 +81,29 @@ void AExplosion::Trace()
 					UCharacterHealthComponent* otherHP = Cast<UCharacterHealthComponent>(tempActor->GetComponentByClass(UCharacterHealthComponent::StaticClass()));
 					if (otherHP)
 					{
-						otherHP->Damage(DamageType, Damage);
+						float dmg;
+
+						if (outSingleHit.Distance / 50.0f > FallofStartDistance && FallofStartDistance < Radius)
+							dmg = (1 - (outSingleHit.Distance / 50.0f - FallofStartDistance) / (Radius - FallofStartDistance)) * Damage;
+						else
+							dmg = Damage;
+						
+						otherHP->Damage(DamageType, dmg);
 					}
 				}				
 			}
 		}
 	}
+}
+
+void AExplosion::Destroyed()
+{
+	GetWorldTimerManager().ClearTimer(SphereTraceTimer);
+	Super::Destroyed();
+}
+
+void AExplosion::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorldTimerManager().ClearTimer(SphereTraceTimer);
+	Super::EndPlay(EndPlayReason);
 }

@@ -11,11 +11,6 @@ AEnergyBallProjectile::AEnergyBallProjectile()
 
 	CharacterHealth = CreateDefaultSubobject<UCharacterHealthComponent>(TEXT("CharacterHealth"));
 	CharacterHealth->MaxHealth = 1;
-	CharacterHealth->PhysicalResistance = 1.0f;
-	CharacterHealth->ExplosiveResistance = 1.0f;
-	CharacterHealth->FireResistance = 1.0f;
-	CharacterHealth->IceResistance = 1.0f;
-	CharacterHealth->EnergyResistance = 0.0f;
 
 	CharacterHealth->KillCharacter.AddDynamic(this, &AEnergyBallProjectile::Die);
 }

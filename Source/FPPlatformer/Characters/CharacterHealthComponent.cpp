@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "CharacterHealthComponent.h"
+#include "Engine/Classes/Engine/World.h"
 
 // Sets default values for this component's properties
 UCharacterHealthComponent::UCharacterHealthComponent()
@@ -9,9 +10,32 @@ UCharacterHealthComponent::UCharacterHealthComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
+	Resistances.SetNumZeroed((int)EDamageType::DMG_MAX, false);
+	EventsDamageOnTick.SetNumZeroed((int)EDamageType::DMG_MAX, false);
+	EventsDuration.SetNumZeroed((int)EDamageType::DMG_MAX, false);
+	CurrentTicks.SetNumZeroed((int)EDamageType::DMG_MAX, false);
 }
 
+
+void UCharacterHealthComponent::OvertimeEventsTick()
+{
+	for (int i = 0; i < (int)EDamageType::DMG_MAX; i++)
+	{
+		if (CurrentTicks[i] > 0)
+		{
+			CurrentTicks[i]--;
+			CurrentHealth -= EventsDamageOnTick[i];
+			if (CurrentHealth == 0.0f)
+			{
+				KillCharacter.Broadcast();
+			}
+			if (CurrentTicks[i] == 0)
+			{
+				OvertimeEventEnded.Broadcast((EDamageType)i);
+			}
+		}
+	}
+}
 
 // Called when the game starts
 void UCharacterHealthComponent::BeginPlay()
@@ -19,8 +43,7 @@ void UCharacterHealthComponent::BeginPlay()
 	Super::BeginPlay();
 
 	RegenTimer = 0.0f;
-	CurrentHealth = MaxHealth;
-	
+	Rebirth();
 }
 
 
@@ -42,36 +65,42 @@ void UCharacterHealthComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 
 void UCharacterHealthComponent::Damage(EDamageType dmgType, float value)
 {
-	switch (dmgType)
-	{
-	case EDamageType::DMG_Physical:
-		CurrentHealth -= value * (1 - PhysicalResistance);
-		break;
-
-	case EDamageType::DMG_Explosive:
-		CurrentHealth -= value * (1 - ExplosiveResistance);
-		break;
-
-	case EDamageType::DMG_Fire:
-		CurrentHealth -= value * (1 - FireResistance);
-		break;
-
-	case EDamageType::DMG_Ice:
-		CurrentHealth -= value * (1 - IceResistance);
-		break;
-
-	case EDamageType::DMG_Energy:
-		CurrentHealth -= value * (1 - EnergyResistance);
-		break;
-	}
-
-	CurrentHealth = FMath::Max(CurrentHealth, 0.0f);
+	CurrentHealth = FMath::Max(CurrentHealth - value * (1 - Resistances[(int)dmgType]), 0.0f);
 	if (CurrentHealth == 0.0f)
 	{
-		KillCharacter.Broadcast();
+		Kill();
 	}
 
-	RegenTimer = 0.0f;
-	DamageCharacter.Broadcast(value, dmgType);
+	if (value > 0.0f)
+	{
+		CurrentTicks[(int)dmgType] = EventsDuration[(int)dmgType];
+
+		RegenTimer = 0.0f;
+		DamageCharacter.Broadcast(value, dmgType);
+	}
+}
+
+void UCharacterHealthComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
+{
+	Super::OnComponentDestroyed(bDestroyingHierarchy);
+	//GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+}
+
+void UCharacterHealthComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetWorld()->GetTimerManager().ClearTimer(OvertimeEventsTicker);
+	Super::EndPlay(EndPlayReason);
+}
+
+void UCharacterHealthComponent::Rebirth()
+{
+	CurrentHealth = MaxHealth;
+	GetWorld()->GetTimerManager().SetTimer(OvertimeEventsTicker, this, &UCharacterHealthComponent::OvertimeEventsTick, 1 / TicksPerSecond, true, 1 / TicksPerSecond);
+}
+
+void UCharacterHealthComponent::Kill()
+{
+	KillCharacter.Broadcast();
+	GetWorld()->GetTimerManager().ClearTimer(OvertimeEventsTicker);
 }
 

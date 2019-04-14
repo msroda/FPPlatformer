@@ -11,11 +11,11 @@ AFreezableWater::AFreezableWater()
 
 	HealthComponent = CreateDefaultSubobject<UCharacterHealthComponent>(TEXT("CharacterHealth"));
 	HealthComponent->MaxHealth = 100;
-	HealthComponent->PhysicalResistance = 1.0f;
-	HealthComponent->ExplosiveResistance = 1.0f;
-	HealthComponent->FireResistance = 1.0f;
-	HealthComponent->IceResistance = 1.0f;
-	HealthComponent->EnergyResistance = 1.0f;
+
+	for (float resistance : HealthComponent->Resistances)
+	{
+		resistance = 1.0f;
+	}
 
 	HealthComponent->DamageCharacter.AddDynamic(this, &AFreezableWater::ReceiveDamage);
 

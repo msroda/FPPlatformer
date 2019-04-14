@@ -26,6 +26,7 @@ AMyCharacter::AMyCharacter()
 	FirstPersonCameraComponent->RelativeLocation = FVector(-39.56f, 1.75f, 64.f); // Position the camera
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 
+	// Create CharacterHealthComponent
 	CharacterHealth = CreateDefaultSubobject<UCharacterHealthComponent>(TEXT("CharacterHealth"));
 	CharacterHealth->KillCharacter.AddDynamic(this, &AMyCharacter::Die);
 
@@ -56,6 +57,8 @@ FVector AMyCharacter::GetLookedPoint()
 
 	if (isHit)
 		return outHit.ImpactPoint;
+
+	// if nothing in range, set max range
 	return FirstPersonCameraComponent->GetComponentLocation() + FirstPersonCameraComponent->GetForwardVector() * ShootRange;
 }
 
@@ -64,9 +67,11 @@ void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Find all guns
 	TArray<AActor*> children;
 	GetAllChildActors(children, false);
 
+	// Deactivate unused guns
 	for (auto child : children)
 	{
 		ABaseGun* gun = Cast<ABaseGun>(child);
@@ -77,15 +82,18 @@ void AMyCharacter::BeginPlay()
 		}
 	}
 
+	// Activate first gun
 	if (Guns.Num() > 0)
 	{
 		Guns[0]->SetActive(true);
 	}
 
+	// Save ground friction for dodge cancelling
 	UCharacterMovementComponent* movement = Cast<UCharacterMovementComponent>(GetMovementComponent());
 	if (movement)
 		OriginalFriction = movement->GroundFriction;
 
+	// Bind overlap Event
 	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &AMyCharacter::OnOverlapBegin);
 
 	if (RunningCameraShake)
@@ -97,7 +105,7 @@ void AMyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-
+	// Cancel grappling, if player changed direction (probably hit a wall)
 	if (IsGrapling)
 	{
 		if (GetVelocity().Size() == 0.0f || FVector::DotProduct(GraplingMovementNormal, GetVelocity().GetUnsafeNormal()) < 0.95f)
@@ -106,13 +114,14 @@ void AMyCharacter::Tick(float DeltaTime)
 
 	if (IsWallRunning)
 	{
+		// Check if player can continue wallrunning
 		HandleWallrunning();
-	}
+	} // Check if the player wants to and can start wallrunning
 	else if (JumpKeyDown && CanWallRun && !IsDodging)
 	{
 		WallNeighborhood = CheckForWallsNearby(AttachedWallNormal);
 
-		//if player wants to wallrun and there's a wall nearby, that is vertical
+		// if player wants to wallrun and there's a wall nearby, that is vertical
 		if (WallNeighborhood != WN_None && AttachedWallNormal.Z >= -0.05f && AttachedWallNormal.Z < 0.15f)
 		{
 			
@@ -135,24 +144,29 @@ void AMyCharacter::Tick(float DeltaTime)
 		}
 	}
 
+	// Aim guns
 	for (auto gun : Guns)
 	{
 		gun->Aim(GetLookedPoint(), DeltaTime);
 	}
 
+	// Apply camera shake based on horizontal velocity
 	if (IsWallRunning || GetMovementComponent()->IsMovingOnGround())
 		RunningShake->ShakeScale = FMath::Pow(FMath::Min(GetVelocity().Size2D()/ GetMovementComponent()->GetMaxSpeed(), 1.0f), 2.0f);
 	else
 		RunningShake->ShakeScale = 0.0f;
+
+	if (GetActorLocation().Z < -1000.0f)
+		Die();
 }
 
-// Called to bind functionality to input
+//Called to bind functionality to input
 void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	// set up gameplay key bindings
+	//set up gameplay key bindings
 	check(PlayerInputComponent);
 
-	// Bind movement events
+	//Bind movement events
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
@@ -163,22 +177,24 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMyCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AMyCharacter::MoveRight);
 
-	// Camera input
+	//Camera input
 	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("TurnRate", this, &AMyCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMyCharacter::LookUpAtRate);
 
-	// Bind fire events
+	//Bind fire events
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyCharacter::OnFirePressed);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AMyCharacter::OnFireReleased);
 	PlayerInputComponent->BindAction("AltFire", IE_Pressed, this, &AMyCharacter::OnAltFirePressed);
 	PlayerInputComponent->BindAction("AltFire", IE_Released, this, &AMyCharacter::OnAltFireReleased);
 
-	// Bind weapon slot change events
+	//Bind weapon slot change events
 	PlayerInputComponent->BindAction("WeaponSlot1", IE_Pressed, this, &AMyCharacter::GetSlotOne);
 	PlayerInputComponent->BindAction("WeaponSlot2", IE_Pressed, this, &AMyCharacter::GetSlotTwo);
 	PlayerInputComponent->BindAction("WeaponSlot3", IE_Pressed, this, &AMyCharacter::GetSlotThree);
+
+	PlayerInputComponent->BindAction("Respawn", IE_Pressed, this, &AMyCharacter::Die);
 
 }
 
@@ -190,17 +206,18 @@ void AMyCharacter::Dodge()
 	{
 		FVector desiredVelocity = FVector(InputComponent->GetAxisValue(TEXT("MoveForward")), InputComponent->GetAxisValue(TEXT("MoveRight")), 0.0f);		
 
-	// if there's input from player, launch him in the desired direction, making sure he doesn't lose too much of the current velocity
+	//if there's input from player, launch him in the desired direction
 	if (desiredVelocity.Size() > 0.0f)
 	{
 		desiredVelocity = GetActorRotation().RotateVector(desiredVelocity.GetUnsafeNormal2D());
 
+		// if player wants to dodge forward
 		if (FVector::DotProduct(desiredVelocity, GetActorForwardVector()) > 0.1f)
 			return;
 
 		desiredVelocity = desiredVelocity * DodgeForce, true, true;
 	}
-	// else don't change his horizontal velocity
+	// if no direction specified, dodge backwards
 	else
 	{
 		desiredVelocity = GetActorForwardVector() * -DodgeForce, true, true;
@@ -221,7 +238,6 @@ void AMyCharacter::StopDodging()
 	UCharacterMovementComponent* movement = Cast<UCharacterMovementComponent>(GetMovementComponent());
 	if (movement)
 		movement->GroundFriction = OriginalFriction;
-	//GetCharacterMovement()->StopMovementImmediately();
 	IsDodging = false;
 	GetWorldTimerManager().SetTimer(DodgeTimerHandle, this, &AMyCharacter::ResetDodge, DodgeCooldown, false, DodgeCooldown);
 }
@@ -267,9 +283,10 @@ void AMyCharacter::Jump()
 		return;
 	if (IsWallRunning)
 	{
-		//walljump
+		// walljump
 		FVector desiredVelocity = GetActorRotation().RotateVector(FVector(InputComponent->GetAxisValue(TEXT("MoveForward")), InputComponent->GetAxisValue(TEXT("MoveRight")), 0.0f));
 
+		// if no direction specified by the player, launch him in the direction of wall normal
 		if (desiredVelocity.Size() == 0.0f)
 			desiredVelocity = GetActorForwardVector().GetUnsafeNormal2D();
 		else
@@ -277,15 +294,16 @@ void AMyCharacter::Jump()
 
 		FVector outputVelocity = AttachedWallNormal * WallJumpForce;
 
+		// limit jump angle
 		if (WallNeighborhood == WN_Right)
 		{
 			if(FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(90.0f, FVector::UpVector)) < 0.0f)
 			{
 				outputVelocity = AttachedWallNormal * WallJumpForce;
 			}
-			else if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(-30.0f, FVector::UpVector)) < 0.0f)
+			else if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(-15.0f, FVector::UpVector)) < 0.0f)
 			{
-				outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(60.0f, FVector::UpVector);
+				outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(75.0f, FVector::UpVector);
 			}
 			else
 				outputVelocity = desiredVelocity * WallJumpForce;
@@ -296,26 +314,26 @@ void AMyCharacter::Jump()
 			{
 				outputVelocity = AttachedWallNormal * WallJumpForce;
 			}
-			else if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(30.0f, FVector::UpVector)) < 0.0f)
+			else if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(15.0f, FVector::UpVector)) < 0.0f)
 			{
-				outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(-60.0f, FVector::UpVector);
+				outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(-75.0f, FVector::UpVector);
 			}
 			else
 				outputVelocity = desiredVelocity * WallJumpForce;
 		}
 		else
 		{
-			if (FVector::DotProduct(desiredVelocity, AttachedWallNormal) < 0.0f)
+			if (FVector::DotProduct(desiredVelocity, AttachedWallNormal) < -0.3f)
 			{
 				outputVelocity = AttachedWallNormal * WallJumpForce;
 			}
 			else
 			{
-				if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(45.0f, FVector::UpVector)) < 0.0f)
-					outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(-45.0f, FVector::UpVector);
+				if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(30.0f, FVector::UpVector)) < 0.0f)
+					outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(-60.0f, FVector::UpVector);
 
-				else if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(-45.0f, FVector::UpVector)) < 0.0f)
-					outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(45.0f, FVector::UpVector);
+				else if (FVector::DotProduct(desiredVelocity, AttachedWallNormal.RotateAngleAxis(-30.0f, FVector::UpVector)) < 0.0f)
+					outputVelocity = (AttachedWallNormal * WallJumpForce).RotateAngleAxis(60.0f, FVector::UpVector);
 				else
 					outputVelocity = desiredVelocity * WallJumpForce;
 			}
@@ -446,6 +464,7 @@ void AMyCharacter::Grip()
 	TArray<AActor*> actorsToIgnore;
 	actorsToIgnore.Add(this);
 
+	// Trace for slingshot sphere
 	isHit = UKismetSystemLibrary::SphereTraceSingle(this, FirstPersonCameraComponent->GetComponentLocation(), FirstPersonCameraComponent->GetComponentLocation() + FirstPersonCameraComponent->GetForwardVector() * GraplingRange, 0.5f, UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::Persistent, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 	
 	if (isHit)
@@ -485,8 +504,8 @@ void AMyCharacter::Drop()
 
 void AMyCharacter::Destroyed()
 {
-	Super::Destroyed();
 	GetWorldTimerManager().ClearTimer(DodgeTimerHandle);
+	Super::Destroyed();	
 }
 
 void AMyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -497,12 +516,14 @@ void AMyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AMyCharacter::OnOverlapBegin(UPrimitiveComponent * OverlappedComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
+	// Launch character of slingshot
 	if (OtherActor->ActorHasTag("Slingshot") && IsGrapling)
 	{
 		StopGrapling();
 		LaunchCharacter(OtherActor->GetActorForwardVector() * GraplingSpeed, true, true);
 	}
 
+	// Save last checkpoint
 	if (OtherActor->ActorHasTag("Checkpoint"))
         LastCheckpointLocation = OtherActor->GetActorLocation();
 
@@ -511,7 +532,24 @@ void AMyCharacter::OnOverlapBegin(UPrimitiveComponent * OverlappedComponent, AAc
 void AMyCharacter::Die()
 {
 	GetMovementComponent()->StopMovementImmediately();
+	GetMovementComponent()->Velocity = FVector::ZeroVector;
 	TeleportTo(LastCheckpointLocation, GetActorRotation());
+	CharacterHealth->Rebirth();
+}
+
+void AMyCharacter::OnWalkingOffLedge_Implementation(const FVector & PreviousFloorImpactNormal, const FVector & PreviousFloorContactNormal, const FVector & PreviousLocation, float TimeDelta)
+{
+	// Prevent player from falling during dodge
+	
+	Super::OnWalkingOffLedge_Implementation(PreviousFloorImpactNormal, PreviousFloorContactNormal, PreviousLocation, TimeDelta);
+
+	if (IsDodging)
+	{
+		StopDodging();
+		GetMovementComponent()->StopMovementImmediately();
+		GetMovementComponent()->Velocity = FVector::ZeroVector;
+		SetActorLocation(PreviousLocation);
+	}
 }
 
 void AMyCharacter::Landed(const FHitResult & Hit)
@@ -528,6 +566,8 @@ void AMyCharacter::Landed(const FHitResult & Hit)
 
 EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 {
+	// Trace for walls in 3 directions
+	
 	FHitResult outHit;
 	bool isHit = false;
 
@@ -535,6 +575,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 	actorsToIgnore.Add(this);
 
 	FVector startLocation = GetActorLocation();
+	startLocation.Z -= 60.0f;
 
 	FCollisionQueryParams collisionParams;	
 
@@ -547,7 +588,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 		return WN_Front;
 	}
 
-	//right side
+	// right side
 	isHit = UKismetSystemLibrary::BoxTraceSingle(this, startLocation, startLocation + GetActorRightVector() * LineTraceRange, FVector(20.0f, 5.0f, 5.0f), GetActorRotation(), UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::ForOneFrame, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 	if (isHit)
 	{
@@ -555,7 +596,7 @@ EWallNeighborhood AMyCharacter::CheckForWallsNearby(FVector &wallNormal)
 		return WN_Right;
 	}
 
-	//left side
+	// left side
 	isHit = UKismetSystemLibrary::BoxTraceSingle(this, startLocation, startLocation - GetActorRightVector() * LineTraceRange, FVector(20.0f, 5.0f, 5.0f), GetActorRotation(), UEngineTypes::ConvertToTraceType(ECC_Visibility), false, actorsToIgnore, EDrawDebugTrace::ForOneFrame, outHit, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
 	if (isHit)
 	{
@@ -586,12 +627,12 @@ void AMyCharacter::StopGrapling()
 
 void AMyCharacter::HandleWallrunning()
 {
-	//check if the wallrunning needs to be stopped by the gravity
+	// check if the wallrunning needs to be stopped by the gravity
 	if ((WallNeighborhood == WN_Front && GetVelocity().Z < MinVerticalZSpeed) || ((WallNeighborhood == WN_Left || WallNeighborhood == WN_Right) && GetVelocity().Z < MinHorizontalZSpeed))
 	{
 		StopWallrun();
 	}
-	//check if there's still a wall to run on
+	// check if there's still a wall to run on
 	else
 	{
 		FHitResult outHit;
@@ -606,12 +647,18 @@ void AMyCharacter::HandleWallrunning()
 		if (isHit)
 		{
 			AttachedWallNormal = outHit.ImpactNormal.GetUnsafeNormal2D();
+			CanClimb = outHit.Actor->ActorHasTag("Climbable");
 		}
 		else
 		{
 			if (WallNeighborhood == WN_Front)
-				LaunchCharacter(FVector(0.0f, 0.0f, VerticalWallRunForce) - AttachedWallNormal * WallStickForce * 2, true, true);
-         				StopWallrun();		
+
+				if (CanClimb)
+					LaunchCharacter(FVector(0.0f, 0.0f, VerticalWallRunForce) - AttachedWallNormal * WallStickForce * 2, true, true);
+				else
+					GetMovementComponent()->StopMovementImmediately();
+
+			StopWallrun();		
 		}		
 	}
 }

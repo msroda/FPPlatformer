@@ -50,7 +50,9 @@ void AMovingObject::Tick(float DeltaTime)
 		DeltaPosition = FMath::Max(DeltaPosition - DeltaTime / MovingTime, 0.0f);
 	}
 
-	SetActorLocation(StartPosition * (1 - DeltaPosition) + TargetPosition * DeltaPosition, true);
+	//SetActorLocation(StartPosition * (1 - DeltaPosition) + TargetPosition * DeltaPosition, true);
+
+	SetActorLocation(FMath::VInterpTo(StartPosition, TargetPosition, DeltaPosition, 1.0f), true);
 }
 
 void AMovingObject::Switch()

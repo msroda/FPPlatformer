@@ -10,7 +10,7 @@ AFPPlatformerGameModeBase::AFPPlatformerGameModeBase()
 {
 	// set default pawn class to our Blueprinted character
 	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/Characters/Player/FPCharacter"));
-	static ConstructorHelpers::FClassFinder<AHUD> HudClassFinder(TEXT("/Game/MyHUD"));
+	static ConstructorHelpers::FClassFinder<AHUD> HudClassFinder(TEXT("/Game/UI/MyHUD"));
 	DefaultPawnClass = PlayerPawnClassFinder.Class;
 	HUDClass = HudClassFinder.Class;
 }

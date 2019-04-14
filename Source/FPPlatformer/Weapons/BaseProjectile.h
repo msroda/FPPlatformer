@@ -36,8 +36,6 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	/** When  */
-	//virtual void OnHit();
 
 public:	
 	// Called every frame

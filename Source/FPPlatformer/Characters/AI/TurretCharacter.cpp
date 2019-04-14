@@ -2,6 +2,8 @@
 
 #include "TurretCharacter.h"
 #include "Runtime/Engine/Public/TimerManager.h"
+#include "Engine/Classes/Particles/ParticleSystemComponent.h"
+#include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 
 // Sets default values
@@ -12,13 +14,10 @@ ATurretCharacter::ATurretCharacter()
 
 	CharacterHealth = CreateDefaultSubobject<UCharacterHealthComponent>(TEXT("CharacterHealth"));
 	CharacterHealth->MaxHealth = 100;
-	CharacterHealth->PhysicalResistance = 0.0f;
-	CharacterHealth->ExplosiveResistance = -1.0f;
-	CharacterHealth->FireResistance = 0.0f;
-	CharacterHealth->IceResistance = 0.0f;
-	CharacterHealth->EnergyResistance = 0.0f;
 
 	CharacterHealth->KillCharacter.AddDynamic(this, &ATurretCharacter::Die);
+	CharacterHealth->DamageCharacter.AddDynamic(this, &ATurretCharacter::ReceiveDamage);
+	CharacterHealth->OvertimeEventEnded.AddDynamic(this, &ATurretCharacter::OnDamageEventEnded);
 
 	PawnSensingComponent = CreateDefaultSubobject<UPawnSensingComponent>(TEXT("CharacterSensing"));
 	PawnSensingComponent->OnSeePawn.AddDynamic(this, &ATurretCharacter::OnSeePlayer);
@@ -42,6 +41,11 @@ void ATurretCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (FireParticleTemplate)
+	{
+		FireParticleSystem = UGameplayStatics::SpawnEmitterAttached(FireParticleTemplate, RootComponent, NAME_None, GetActorLocation(), GetActorRotation(), EAttachLocation::KeepWorldPosition, false);
+		FireParticleSystem->DeactivateSystem();
+	}
 }
 
 // Called every frame
@@ -125,6 +129,28 @@ bool ATurretCharacter::ShootPlayer()
 		}
 	}
 	return false;
+}
+
+void ATurretCharacter::ReceiveDamage(float damage, EDamageType damageType)
+{
+	if (damageType == EDamageType::DMG_Fire)
+	{
+		if (FireParticleSystem)
+		{
+			FireParticleSystem->ActivateSystem();
+		}
+	}
+}
+
+void ATurretCharacter::OnDamageEventEnded(EDamageType damageType)
+{
+	if (damageType == EDamageType::DMG_Fire)
+	{
+		if (FireParticleSystem)
+		{
+			FireParticleSystem->DeactivateSystem();
+		}
+	}
 }
 
 void ATurretCharacter::EndCooldown()

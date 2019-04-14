@@ -2,6 +2,9 @@
 
 #include "BomberCharacter.h"
 #include "Runtime/Engine/Classes/GameFramework/Controller.h"
+#include "Engine/Classes/Particles/ParticleSystemComponent.h"
+#include "Engine/Classes/Kismet/GameplayStatics.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Runtime/Engine/Public/TimerManager.h"
 
 // Sets default values
@@ -12,23 +15,27 @@ ABomberCharacter::ABomberCharacter()
 
 	CharacterHealth = CreateDefaultSubobject<UCharacterHealthComponent>(TEXT("CharacterHealth"));
 	CharacterHealth->MaxHealth = 100;
-	CharacterHealth->PhysicalResistance = 0.0f;
-	CharacterHealth->ExplosiveResistance = -1.0f;
-	CharacterHealth->FireResistance = 0.0f;
-	CharacterHealth->IceResistance = 0.0f;
-	CharacterHealth->EnergyResistance = 0.0f;
 
 	CharacterHealth->KillCharacter.AddDynamic(this, &ABomberCharacter::Die);
+	CharacterHealth->DamageCharacter.AddDynamic(this, &ABomberCharacter::ReceiveDamage);
+	CharacterHealth->OvertimeEventEnded.AddDynamic(this, &ABomberCharacter::OnDamageEventEnded);
 
 	PawnSensingComponent = CreateDefaultSubobject<UPawnSensingComponent>(TEXT("CharacterSensing"));
 	PawnSensingComponent->OnSeePawn.AddDynamic(this, &ABomberCharacter::OnSeePlayer);
+
+	OriginalWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
 }
 
 // Called when the game starts or when spawned
 void ABomberCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	if (FireParticleTemplate)
+	{
+		FireParticleSystem = UGameplayStatics::SpawnEmitterAttached(FireParticleTemplate, RootComponent, NAME_None, GetActorLocation(), GetActorRotation(), EAttachLocation::KeepWorldPosition, false);
+		FireParticleSystem->DeactivateSystem();
+	}
 }
 
 // Called every frame
@@ -106,6 +113,11 @@ void ABomberCharacter::Die()
 		GetWorldTimerManager().SetTimer(ExplosionCountdownTimer, this, &ABomberCharacter::Explode, FuseTime, false, FuseTime);
 		Controller->StopMovement();
 		IsExploding = true;
+		if (SmokeParticleTemplate)
+		{
+			SmokeParticleSystem = UGameplayStatics::SpawnEmitterAttached(SmokeParticleTemplate, RootComponent, NAME_None, GetActorLocation(), GetActorRotation(), EAttachLocation::KeepWorldPosition, false);
+			SmokeParticleSystem->CustomTimeDilation = 15.0f;
+		}
 	}
 }
 
@@ -124,6 +136,38 @@ void ABomberCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 	GetWorldTimerManager().ClearTimer(ExplosionCountdownTimer);
+}
+
+void ABomberCharacter::ReceiveDamage(float damage, EDamageType damageType)
+{
+	if (damageType == EDamageType::DMG_Fire)
+	{		
+		if (FireParticleSystem)
+		{
+			FireParticleSystem->ActivateSystem();
+		}
+	}
+
+	else if (damageType == EDamageType::DMG_Ice)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = OriginalWalkSpeed * SlowMultiplier;
+	}
+}
+
+void ABomberCharacter::OnDamageEventEnded(EDamageType damageType)
+{
+	if (damageType == EDamageType::DMG_Fire)
+	{
+		if (FireParticleSystem)
+		{
+			FireParticleSystem->DeactivateSystem();
+		}
+	}
+
+	else if (damageType == EDamageType::DMG_Ice)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = OriginalWalkSpeed;
+	}
 }
 
 void ABomberCharacter::OnSeePlayer(APawn* Pawn)

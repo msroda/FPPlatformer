@@ -31,26 +31,42 @@ public:
 	// Called every frame
 	virtual void OnConstruction(const FTransform & Transform) override;
 
+	// Sphere visualizing explosion
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		UPrimitiveComponent* SphereComponent;
 
+	// Duration of explosion
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		float DurationTime = 0.3f;
 
+	// Radius of explosion
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		float Radius = 200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
+		float FallofStartDistance = 100.0f;
+
+	// Base damage of explosion
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		float Damage = 70.0f;
 
+	// Damage type
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		EDamageType DamageType = EDamageType::DMG_Explosive;
 
+	// How many sphere traces to perform
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Explosion)
 		int Ticks = 4;
 
+	// Trace for objects in range
 	UFUNCTION()
 		void Trace();
+
+	// For clearing timers when bullet is destroyed
+	virtual void Destroyed() override;
+
+	// For clearing timers when game stops
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
 	TArray<AActor*> ActorsHit;
